@@ -11,7 +11,7 @@
 为了让你的项目更吸引人，请截取一张你软件主界面的图片，
 将它拖拽到GitHub仓库的文件列表里上传，然后将下面的图片链接替换成你上传后的链接。
 -->
-![应用截图](https://raw.githubusercontent.com/Albert-Chen04/Pocket-48-Video-Editing-Toolkit/main/screenshot.png)
+![应用截图](https://raw.githubusercontent.com/Albert-Chen04/Pocket48-Video-Editing-Toolkit/main/screenshot.png)
 
 ---
 
