@@ -34,7 +34,7 @@ class SubtitleTab(QWidget):
         self.video_file_path_sub = QLineEdit()
         self.browse_video_sub_btn = QPushButton("浏览视频...")
         self.lrc_file_path_sub = QLineEdit()
-        self.browse_lrc_sub_btn = QPushButton("浏览字幕...")
+        self.browse_lrc_sub_btn = QPushButton("浏览弹幕...")
         self.output_dir_sub = QLineEdit()
         self.output_dir_sub_browse_btn = QPushButton("浏览...")
 
@@ -90,7 +90,7 @@ class SubtitleTab(QWidget):
         input_layout.addWidget(QLabel("视频文件:"), 0, 0)
         input_layout.addWidget(self.video_file_path_sub, 0, 1)
         input_layout.addWidget(self.browse_video_sub_btn, 0, 2)
-        input_layout.addWidget(QLabel("字幕文件:"), 1, 0)
+        input_layout.addWidget(QLabel("弹幕文件:"), 1, 0)
         input_layout.addWidget(self.lrc_file_path_sub, 1, 1)
         input_layout.addWidget(self.browse_lrc_sub_btn, 1, 2)
         input_layout.addWidget(QLabel("输出文件夹:"), 2, 0)
