@@ -73,8 +73,8 @@ class MainWindow(QMainWindow):
         # 【新增】将新功能页添加到第一个位置
         self.tabs.addTab(transcribe_tab_widget, "语音转文本")
         
-        self.tabs.addTab(canvas_tab_widget, "竖屏画布字幕视频")
-        self.tabs.addTab(horizontal_tab_widget, "横屏字幕视频")
+        self.tabs.addTab(canvas_tab_widget, "横屏字幕视频")
+        self.tabs.addTab(horizontal_tab_widget, "竖屏字幕视频")
         self.tabs.addTab(subtitle_tab_widget, "Chatbox弹幕视频")
         self.tabs.addTab(merge_tab_widget, "合并媒体")
         self.tabs.addTab(transcode_tab_widget, "批量转码")
