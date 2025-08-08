@@ -3,6 +3,8 @@ import subprocess
 import os
 from PySide6.QtCore import QObject, Signal
 
+from core.codec_config import build_video_command_with_codec, get_actual_codec_name
+
 class BatchClipWorker(QObject):
     # 【修正】整个类的内容都需要缩进
     """
@@ -47,14 +49,15 @@ class BatchClipWorker(QObject):
             if is_audio_only:
                 codec_map = {"aac": "aac", "mp3": "libmp3lame", "flac": "flac", "wav": "pcm_s16le", "opus": "libopus"}
                 command.extend(['-vn', '-c:a', codec_map.get(ext, 'aac')])
+                command.extend(['-y', temp_filepath])
             else:
-                codec = self.options['codec'].split(" ")[0]
+                # 使用统一的编码器配置
+                codec = get_actual_codec_name(self.options['codec'])
                 if codec == 'copy':
-                    command.extend(['-c', 'copy'])
+                    base_command = command + ['-c', 'copy']
                 else:
-                    command.extend(['-c:v', codec, '-c:a', 'copy'])
-            
-            command.extend(['-y', temp_filepath])
+                    base_command = command + ['-c:v', codec, '-c:a', 'copy']
+                command = build_video_command_with_codec(base_command, codec, temp_filepath)
             self.log_message.emit(f"🚀 执行命令: {' '.join(['ffmpeg'] + command)}")
 
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))

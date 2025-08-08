@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, Q
 from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.clip_worker import BatchClipWorker
+from core.codec_config import get_codec_options_for_ui
 from ui.dialogs import ClipDialog
 
 class ClipTab(QWidget):
@@ -48,13 +49,16 @@ class ClipTab(QWidget):
         self.clip_format_combo = QComboBox()
         self.clip_format_combo.addItems(["mp4", "mkv", "ts", "mp3", "aac", "flac", "wav"])
         self.clip_codec_combo = QComboBox()
-        self.clip_codec_combo.addItems(["copy (无损复制)", "h264_nvenc (N卡)", "libx264 (CPU)"])
+        self.clip_codec_combo.addItems(get_codec_options_for_ui(include_copy=True, include_h265=True, copy_label="copy (无损复制)"))
         
         # --- 进度和日志 ---
         self.clip_progress_label = QLabel("等待任务...")
         self.clip_log_output = QTextEdit()
         self.clip_log_output.setReadOnly(True)
         self.start_clip_button = QPushButton("开始批量裁剪")
+        
+        # --- 设置默认选项 ---
+        self.clip_codec_combo.setCurrentText("copy (无损复制)")
 
     def create_layouts(self):
         layout = QVBoxLayout(self)

@@ -5,6 +5,7 @@ import os
 from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration
+from core.codec_config import build_video_command_with_codec, get_actual_codec_name
 
 class BatchTranscodeWorker(QObject):
     # 【修正】整个类的内容都需要缩进
@@ -46,11 +47,15 @@ class BatchTranscodeWorker(QObject):
             if "提取" in selected_format:
                 codec_map = {"aac": "aac", "mp3": "libmp3lame", "flac": "flac", "wav": "pcm_s16le", "opus": "libopus"}
                 command.extend(['-vn', '-c:a', codec_map.get(ext, 'aac')])
+                command.extend(['-y', output_file])
             else:
-                codec = self.options['codec'].split(" ")[0]
-                command.extend(['-c:v', codec, '-c:a', 'copy'])
-            
-            command.extend(['-y', output_file])
+                # 使用统一的编码器配置
+                codec = get_actual_codec_name(self.options['codec'])
+                if codec == 'copy':
+                    base_command = command + ['-c', 'copy']
+                else:
+                    base_command = command + ['-c:v', codec, '-c:a', 'copy']
+                command = build_video_command_with_codec(base_command, codec, output_file)
 
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             self.log_message.emit(f"🚀 执行命令: {' '.join(['ffmpeg'] + command)}")

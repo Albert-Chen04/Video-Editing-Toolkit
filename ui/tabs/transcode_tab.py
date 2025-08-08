@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, Q
 from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.transcode_worker import BatchTranscodeWorker
+from core.codec_config import get_codec_options_for_ui
 
 class TranscodeTab(QWidget):
     def __init__(self, main_window):
@@ -40,7 +41,7 @@ class TranscodeTab(QWidget):
             "提取 aac", "提取 mp3", "提取 flac", "提取 wav", "提取 opus"
         ])
         self.batch_codec_combo = QComboBox()
-        self.batch_codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)", "copy (不转码)"])
+        self.batch_codec_combo.addItems(get_codec_options_for_ui(include_copy=True, include_h265=True, copy_label="copy (不转码)"))  # 支持copy选项，标签为"不转码"
 
         # --- 进度和日志 ---
         self.batch_progress_label = QLabel("等待任务...")
@@ -50,6 +51,9 @@ class TranscodeTab(QWidget):
 
         # --- 控制按钮 ---
         self.start_batch_button = QPushButton("开始处理列表")
+        
+        # --- 设置默认选项 ---
+        self.batch_codec_combo.setCurrentText("h264_nvenc (N卡)")
 
     def create_layouts(self):
         layout = QVBoxLayout(self)

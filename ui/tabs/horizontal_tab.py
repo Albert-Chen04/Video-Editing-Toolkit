@@ -7,6 +7,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtCore import QThread, Slot
 
 from core.workers.horizontal_worker import HorizontalBurnWorker, HorizontalPreviewWorker
+from core.codec_config import get_codec_options_for_ui
 from ui.dialogs import PreviewDialog
 
 class HorizontalTab(QWidget):
@@ -51,7 +52,8 @@ class HorizontalTab(QWidget):
         self.wrap_width_spin = QSpinBox(); self.wrap_width_spin.setRange(10, 100)
 
         # --- 编码与控制 ---
-        self.codec_combo = QComboBox(); self.codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        self.codec_combo = QComboBox()
+        self.codec_combo.addItems(get_codec_options_for_ui(include_h265=True))
         self.output_format_combo = QComboBox(); self.output_format_combo.addItems(["mp4", "mkv", "mov", "webm", "avi", "flv", "ts"])
         self.preview_button = QPushButton("生成预览图")
         self.start_button = QPushButton("开始制作")
@@ -60,6 +62,9 @@ class HorizontalTab(QWidget):
         # --- 日志与进度条 ---
         self.log_output = QTextEdit(); self.log_output.setReadOnly(True)
         self.progress_bar = QProgressBar(); self.progress_bar.setVisible(False)
+        
+        # --- 设置默认选项 ---
+        self.codec_combo.setCurrentText("h264_nvenc (N卡)")
 
     def create_layouts(self):
         main_layout = QVBoxLayout(self)

@@ -5,6 +5,7 @@ import os
 from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration, get_video_dimensions
+from core.codec_config import build_video_command_with_codec, get_actual_codec_name
 
 class SubtitleBurnWorker(QObject):
     # 【修正】整个类的内容都需要缩进
@@ -52,9 +53,17 @@ class SubtitleBurnWorker(QObject):
             output_format = self.params['output_format']
             output_file = os.path.join(output_dir, f"{base_name}_danmaku.{output_format}").replace("\\", "/")
             escaped_ass_path = temp_ass_path.replace('\\', '/').replace(':', '\\:')
-            codec = self.params['codec']
             
-            command = ['-hide_banner', '-i', video_file, '-vf', f"ass=filename='{escaped_ass_path}'", '-c:v', codec, '-preset', 'p5', '-cq', '18', '-c:a', 'copy', '-y', output_file]
+            # 使用统一的编码器配置
+            codec = get_actual_codec_name(self.params['codec'])
+            base_command = [
+                '-hide_banner', '-i', video_file, 
+                '-vf', f"ass=filename='{escaped_ass_path}'", 
+                '-c:v', codec, 
+                '-c:a', 'copy'
+            ]
+            
+            command = build_video_command_with_codec(base_command, codec, output_file)
             
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             self.log_message.emit(f"🚀 执行命令: {' '.join(['ffmpeg'] + command)}")

@@ -8,6 +8,7 @@ from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.canvas_worker import CanvasBurnWorker, CanvasPreviewWorker
 from core.utils import get_video_dimensions
+from core.codec_config import get_codec_options_for_ui
 from ui.dialogs import PreviewDialog
 
 class CanvasTab(QWidget):
@@ -72,7 +73,7 @@ class CanvasTab(QWidget):
 
         # --- 编码与控制 ---
         self.codec_combo = QComboBox()
-        self.codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        self.codec_combo.addItems(get_codec_options_for_ui(include_h265=True))
         self.output_format_combo = QComboBox()
         self.output_format_combo.addItems(["mp4", "mkv", "mov", "webm", "avi", "flv", "ts"])
         self.preview_button = QPushButton("生成预览图")
@@ -84,6 +85,9 @@ class CanvasTab(QWidget):
         self.log_output.setReadOnly(True)
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
+        
+        # --- 设置默认选项 ---
+        self.codec_combo.setCurrentText("h264_nvenc (N卡)")
 
     def create_layouts(self):
         main_layout = QVBoxLayout(self)

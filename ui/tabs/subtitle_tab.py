@@ -8,6 +8,7 @@ from PySide6.QtCore import QThread, Slot
 
 from core.workers.subtitle_worker import SubtitleBurnWorker, PreviewWorker
 from core.subtitle_converter import lrc_to_ass_chatbox_region
+from core.codec_config import get_codec_options_for_ui
 from ui.dialogs import PreviewDialog
 
 class SubtitleTab(QWidget):
@@ -70,7 +71,7 @@ class SubtitleTab(QWidget):
 
         # --- 编码器和控制按钮 ---
         self.sub_codec_combo = QComboBox()
-        self.sub_codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        self.sub_codec_combo.addItems(get_codec_options_for_ui(include_h265=True))
         self.sub_output_format_combo = QComboBox()
         self.sub_output_format_combo.addItems(["mp4", "mkv", "mov", "webm", "avi", "flv", "ts"])
         self.preview_button_sub = QPushButton("生成预览图")
@@ -81,6 +82,9 @@ class SubtitleTab(QWidget):
         self.log_output_sub.setReadOnly(True)
         self.progress_bar_sub = QProgressBar()
         self.progress_bar_sub.setVisible(False)
+        
+        # --- 设置默认选项 ---
+        self.sub_codec_combo.setCurrentText("h264_nvenc (N卡)")
 
     def create_layouts(self):
         main_layout = QVBoxLayout(self)

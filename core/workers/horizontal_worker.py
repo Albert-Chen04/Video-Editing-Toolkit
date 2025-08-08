@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration, get_video_dimensions
 from core.subtitle_converter import lrc_to_horizontal_ass
+from core.codec_config import build_video_command_with_codec, get_actual_codec_name
 
 class HorizontalBurnWorker(QObject):
     """在后台执行横屏视频+底部居中字幕的合成任务。"""
@@ -53,15 +54,17 @@ class HorizontalBurnWorker(QObject):
             escaped_ass_path = temp_ass_path.replace('\\', '/').replace(':', '\\:')
             
             vf_chain = f"subtitles='{escaped_ass_path}'"
-            command = [
+            
+            # 使用统一的编码器配置
+            codec = get_actual_codec_name(self.params['codec'])
+            base_command = [
                 '-hide_banner', '-i', video_file,
                 '-vf', vf_chain,
-                '-c:v', self.params['codec'],
-                # 【修复】强制重新编码音频以保证同步，不再使用 '-c:a', 'copy'
-                '-c:a', 'aac', '-b:a', '192k',
-                '-preset', 'p5', '-cq', '18',
-                '-y', output_file
+                '-c:v', codec,
+                '-c:a', 'aac', '-b:a', '192k'
             ]
+            
+            command = build_video_command_with_codec(base_command, codec, output_file)
             
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             self.log_message.emit(f"🚀 执行命令: {' '.join(['ffmpeg'] + command)}")

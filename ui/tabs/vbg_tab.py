@@ -2,10 +2,11 @@
 
 import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit,
-                               QProgressBar, QComboBox, QTextEdit, QMessageBox, QGridLayout)
+                               QProgressBar, QComboBox, QTextEdit, QMessageBox, QGridLayout, QApplication)
 from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.vbg_worker import VideoFromBgWorker
+from core.codec_config import get_codec_options_for_ui
 # 【移除】不再需要 ImageCropDialog
 # from ui.dialogs import ImageCropDialog
 
@@ -43,7 +44,7 @@ class VideoFromBgTab(QWidget):
         self.vbg_format_combo = QComboBox()
         self.vbg_format_combo.addItems(["mp4", "mkv", "mov", "flv", "ts"])
         self.vbg_codec_combo = QComboBox()
-        self.vbg_codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        self.vbg_codec_combo.addItems(get_codec_options_for_ui(include_copy=False, include_h265=True))
         
         # --- 进度和日志 ---
         self.vbg_progress_bar = QProgressBar()
@@ -51,6 +52,9 @@ class VideoFromBgTab(QWidget):
         self.vbg_log_output = QTextEdit()
         self.vbg_log_output.setReadOnly(True)
         self.start_vbg_button = QPushButton("开始合成")
+        
+        # --- 设置默认选项 ---
+        self.vbg_codec_combo.setCurrentText("h264_nvenc (N卡)")
 
     def create_layouts(self):
         layout = QVBoxLayout(self)
