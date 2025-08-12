@@ -5,9 +5,10 @@ import os
 from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration, get_video_dimensions
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_codec_params
 
 class SubtitleBurnWorker(QObject):
-    # 【修正】整个类的内容都需要缩进
     """
     在后台执行LRC到ASS的转换，并使用FFmpeg将字幕烧录到视频中。
     """
@@ -48,13 +49,25 @@ class SubtitleBurnWorker(QObject):
                 return
             self.log_message.emit(f"✅ {msg}")
 
-            # 从参数中获取用户选择的视频格式
             output_format = self.params['output_format']
             output_file = os.path.join(output_dir, f"{base_name}_danmaku.{output_format}").replace("\\", "/")
             escaped_ass_path = temp_ass_path.replace('\\', '/').replace(':', '\\:')
-            codec = self.params['codec']
             
-            command = ['-hide_banner', '-i', video_file, '-vf', f"ass=filename='{escaped_ass_path}'", '-c:v', codec, '-preset', 'p5', '-cq', '18', '-c:a', 'copy', '-y', output_file]
+            command = [
+                '-hide_banner', '-i', video_file, 
+                '-vf', f"ass=filename='{escaped_ass_path}'"
+            ]
+
+            # 【修改】动态获取并添加编码器参数
+            codec_name = self.params.get('codec_name', 'CPU x264 (高兼容)')
+            codec_params = get_codec_params(codec_name)
+            command.extend(codec_params)
+            
+            # 添加音频参数（强制重编码以保证同步）
+            command.extend(['-c:a', 'aac', '-b:a', '192k'])
+
+            # 添加输出文件和覆盖参数
+            command.extend(['-y', output_file])
             
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             self.log_message.emit(f"🚀 执行命令: {' '.join(['ffmpeg'] + command)}")
@@ -92,7 +105,6 @@ class SubtitleBurnWorker(QObject):
         self._is_running = False
 
 class PreviewWorker(QObject):
-    # 【修正】整个类的内容都需要缩进
     """
     在后台生成带字幕效果的单帧预览图。
     """
@@ -135,7 +147,6 @@ class PreviewWorker(QObject):
             temp_img_path = os.path.join(self.params['base_path'], "preview.jpg")
             
             escaped_ass_path = temp_ass_path.replace('\\', '/').replace(':', '\\:')
-            # 预览时将视频缩小一半，加快处理速度
             vf_chain = f"ass=filename='{escaped_ass_path}'"
             
             command = [self.ffmpeg_path, '-y', '-i', video_file, '-ss', str(seek_point), '-vf', vf_chain, '-vframes', '1', temp_img_path]
@@ -152,5 +163,9 @@ class PreviewWorker(QObject):
         except Exception as e:
             self.finished.emit(False, f"生成预览时发生未知错误: {e}")
         finally:
+            # 【修复】增加文件存在性检查，避免程序因文件不存在而崩溃
             if temp_ass_path and os.path.exists(temp_ass_path):
-                os.remove(temp_ass_path)
+                try:
+                    os.remove(temp_ass_path)
+                except OSError:
+                    pass

@@ -1,13 +1,14 @@
 # ui/tabs/transcode_tab.py
 
 import os
-# 【修正】在这里添加了 QAbstractItemView
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit,
                                QProgressBar, QFileDialog, QComboBox, QTextEdit, QMessageBox,
                                QListWidget, QAbstractItemView, QFrame)
 from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.transcode_worker import BatchTranscodeWorker
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class TranscodeTab(QWidget):
     def __init__(self, main_window):
@@ -20,13 +21,14 @@ class TranscodeTab(QWidget):
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
+        # 【新增】调用设置默认值
+        self.set_default_options()
 
     def create_widgets(self):
         # --- 文件列表 ---
         self.add_files_button = QPushButton("添加文件...")
         self.clear_list_button = QPushButton("清空列表")
         self.batch_list_widget = QListWidget()
-        # 这一行现在可以正常工作了
         self.batch_list_widget.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         # --- 输出路径 ---
@@ -39,8 +41,19 @@ class TranscodeTab(QWidget):
             "mp4", "mkv", "mov", "ts", "flv", "webm", "avi", 
             "提取 aac", "提取 mp3", "提取 flac", "提取 wav", "提取 opus"
         ])
+        
         self.batch_codec_combo = QComboBox()
-        self.batch_codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)", "copy (不转码)"])
+        # 【修改】从统一配置模块动态加载编码器选项
+        encoder_options = get_encoder_options()
+        self.batch_codec_combo.addItems(encoder_options)
+        # 【修改】为 "直接复制" 选项添加 ToolTip
+        copy_index = -1
+        try:
+            copy_index = encoder_options.index("直接复制 (无损/极速)")
+        except ValueError:
+            pass
+        if copy_index != -1:
+            self.batch_codec_combo.setItemData(copy_index, get_copy_tooltip(), Qt.ToolTipRole)
 
         # --- 进度和日志 ---
         self.batch_progress_label = QLabel("等待任务...")
@@ -91,12 +104,26 @@ class TranscodeTab(QWidget):
         self.clear_list_button.clicked.connect(self.batch_list_widget.clear)
         self.output_dir_browse_button.clicked.connect(lambda: self.main_window.browse_output_dir(self.output_dir_line_edit))
         self.start_batch_button.clicked.connect(self.start_batch_transcoding)
+        # 【新增】连接信号，当格式改变时更新编码器状态
+        self.batch_format_combo.currentTextChanged.connect(self.on_format_changed)
+
+    # 【新增】设置默认选项的函数
+    def set_default_options(self):
+        self.batch_codec_combo.setCurrentText("直接复制 (无损/极速)")
+
+    # 【新增】当格式下拉框变化时调用的函数
+    def on_format_changed(self, text):
+        is_audio_extract = "提取" in text
+        self.batch_codec_combo.setEnabled(not is_audio_extract)
+        if is_audio_extract:
+            self.batch_codec_combo.setToolTip("提取音频时，视频编码器无效。")
+        else:
+            self.batch_codec_combo.setToolTip("") # 清除提示
 
     def add_files_to_batch(self):
         files, _ = QFileDialog.getOpenFileNames(self, "选择要处理的文件", "", self.main_window.media_filter)
         if files:
             self.batch_list_widget.addItems(files)
-            # 自动设置输出目录为第一个文件的目录
             if not self.output_dir_line_edit.text():
                 self.output_dir_line_edit.setText(os.path.dirname(files[0]))
 
@@ -111,9 +138,11 @@ class TranscodeTab(QWidget):
             return
             
         file_queue = [self.batch_list_widget.item(i).text() for i in range(self.batch_list_widget.count())]
+        
+        # 【修改】获取编码器名称
         transcode_options = {
             'format': self.batch_format_combo.currentText(),
-            'codec': self.batch_codec_combo.currentText(),
+            'codec_name': self.batch_codec_combo.currentText(),
             'output_dir': output_dir
         }
 
@@ -154,3 +183,9 @@ class TranscodeTab(QWidget):
         self.start_batch_button.setEnabled(enabled)
         self.add_files_button.setEnabled(enabled)
         self.clear_list_button.setEnabled(enabled)
+        self.output_dir_browse_button.setEnabled(enabled)
+        # 【修改】确保在禁用时，编码器下拉框状态正确
+        if enabled:
+            self.on_format_changed(self.batch_format_combo.currentText())
+        else:
+            self.batch_codec_combo.setEnabled(False)

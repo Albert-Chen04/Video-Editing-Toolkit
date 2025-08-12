@@ -9,6 +9,8 @@ from PySide6.QtCore import QThread, Slot, Qt
 from core.workers.canvas_worker import CanvasBurnWorker, CanvasPreviewWorker
 from core.utils import get_video_dimensions
 from ui.dialogs import PreviewDialog
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class CanvasTab(QWidget):
     def __init__(self, main_window):
@@ -28,7 +30,6 @@ class CanvasTab(QWidget):
             "灰色": ("#808080", "&H808080"),
         }
         
-        # 【新增】定义通用的字幕文件过滤器
         self.subtitle_filter = "字幕文件 (*.lrc *.srt *.vtt *.txt);;所有文件 (*.*)"
 
         self.create_widgets()
@@ -72,7 +73,18 @@ class CanvasTab(QWidget):
 
         # --- 编码与控制 ---
         self.codec_combo = QComboBox()
-        self.codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        # 【修改】从统一配置模块动态加载编码器选项
+        encoder_options = get_encoder_options()
+        self.codec_combo.addItems(encoder_options)
+        # 【修改】为 "直接复制" 选项添加 ToolTip
+        copy_index = -1
+        try:
+            copy_index = encoder_options.index("直接复制 (无损/极速)")
+        except ValueError:
+            pass # 如果没找到就不设置
+        if copy_index != -1:
+            self.codec_combo.setItemData(copy_index, get_copy_tooltip(), Qt.ToolTipRole)
+
         self.output_format_combo = QComboBox()
         self.output_format_combo.addItems(["mp4", "mkv", "mov", "webm", "avi", "flv", "ts"])
         self.preview_button = QPushButton("生成预览图")
@@ -144,7 +156,6 @@ class CanvasTab(QWidget):
 
     def create_connections(self):
         self.browse_video_btn.clicked.connect(lambda: self.main_window.browse_file(self.video_file_path, "选择视频文件", self.main_window.video_filter))
-        # 【修改】使用新的通用字幕文件过滤器
         self.browse_lrc_btn.clicked.connect(lambda: self.main_window.browse_file(self.lrc_file_path, "选择字幕文件", self.subtitle_filter))
         self.output_dir_browse_btn.clicked.connect(lambda: self.main_window.browse_output_dir(self.output_dir))
         
@@ -162,10 +173,13 @@ class CanvasTab(QWidget):
         self.primary_color_combo.setCurrentText("白色")
         self.outline_spin.setValue(4)
         self.spacing_spin.setValue(5)
-        # 【修复Bug】将行间距默认值改为15
-        self.line_spacing_spin.setValue(15)
+        self.line_spacing_spin.setValue(20) # 【修正】将行间距默认值恢复为的20
         self.wrap_width_spin.setValue(10)
-        self.log_output.append("ℹ️ 已加载参考代码中的默认参数。")
+        
+        # 【修改】设置默认编码器选项
+        self.codec_combo.setCurrentText("N卡 H.264 (高质量)")
+        
+        self.log_output.append("ℹ️ 已加载默认参数。")
 
     def update_ui_for_video(self):
         video_path = self.video_file_path.text()
@@ -208,13 +222,19 @@ class CanvasTab(QWidget):
             'canvas_color': self.color_map[canvas_color_name][0],
         }
 
+        # 【修改】获取编码器名称而不是硬编码的值
+        codec_name = self.codec_combo.currentText()
+        if "直接复制" in codec_name:
+            QMessageBox.warning(self, "选项错误", "此功能需要重新编码视频以添加画布和字幕，\n不能使用“直接复制”模式。请选择其他编码器。")
+            return None
+
         return {
             'video_file': video_file,
-            'lrc_file': lrc_file, # 参数名保持不变，但内容已是通用路径
+            'lrc_file': lrc_file,
             'output_dir': output_dir,
             'base_path': self.main_window.base_path,
             'canvas_width': self.canvas_width_spin.value(),
-            'codec': self.codec_combo.currentText().split(" ")[0],
+            'codec_name': codec_name, # 传递编码器名称
             'output_format': self.output_format_combo.currentText(),
             'style_params': style_params,
         }

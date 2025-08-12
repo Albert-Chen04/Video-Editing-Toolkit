@@ -4,10 +4,12 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, Q
                                QProgressBar, QComboBox, QTextEdit, QMessageBox, 
                                QGridLayout, QSpinBox, QFontComboBox, QFrame, QApplication)
 from PySide6.QtGui import QFont
-from PySide6.QtCore import QThread, Slot
+from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.horizontal_worker import HorizontalBurnWorker, HorizontalPreviewWorker
 from ui.dialogs import PreviewDialog
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class HorizontalTab(QWidget):
     def __init__(self, main_window):
@@ -23,7 +25,6 @@ class HorizontalTab(QWidget):
             "红色": "&H0000FF",
         }
 
-        # 【新增】定义通用的字幕文件过滤器
         self.subtitle_filter = "字幕文件 (*.lrc *.srt *.vtt *.txt);;所有文件 (*.*)"
 
         self.create_widgets()
@@ -51,7 +52,19 @@ class HorizontalTab(QWidget):
         self.wrap_width_spin = QSpinBox(); self.wrap_width_spin.setRange(10, 100)
 
         # --- 编码与控制 ---
-        self.codec_combo = QComboBox(); self.codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        self.codec_combo = QComboBox()
+        # 【修改】从统一配置模块动态加载编码器选项
+        encoder_options = get_encoder_options()
+        self.codec_combo.addItems(encoder_options)
+        # 【修改】为 "直接复制" 选项添加 ToolTip
+        copy_index = -1
+        try:
+            copy_index = encoder_options.index("直接复制 (无损/极速)")
+        except ValueError:
+            pass
+        if copy_index != -1:
+            self.codec_combo.setItemData(copy_index, get_copy_tooltip(), Qt.ToolTipRole)
+
         self.output_format_combo = QComboBox(); self.output_format_combo.addItems(["mp4", "mkv", "mov", "webm", "avi", "flv", "ts"])
         self.preview_button = QPushButton("生成预览图")
         self.start_button = QPushButton("开始制作")
@@ -76,7 +89,10 @@ class HorizontalTab(QWidget):
         params_layout.addWidget(QLabel("字体颜色:"), 1, 0); params_layout.addWidget(self.primary_color_combo, 1, 1)
         params_layout.addWidget(QLabel("描边宽度:"), 1, 2); params_layout.addWidget(self.outline_spin, 1, 3)
         params_layout.addWidget(QLabel("字间距:"), 2, 0); params_layout.addWidget(self.spacing_spin, 2, 1)
-        params_layout.addWidget(QLabel("行间距(暂未生效):"), 2, 2); params_layout.addWidget(self.line_spacing_spin, 2, 3)
+        
+        # 【修正】移除“(暂未生效)”
+        params_layout.addWidget(QLabel("行间距:"), 2, 2); params_layout.addWidget(self.line_spacing_spin, 2, 3)
+        
         params_layout.addWidget(QLabel("字幕底边距:"), 3, 0); params_layout.addWidget(self.margin_v_spin, 3, 1)
         params_layout.addWidget(QLabel("自动换行字数:"), 3, 2); params_layout.addWidget(self.wrap_width_spin, 3, 3)
         
@@ -102,7 +118,6 @@ class HorizontalTab(QWidget):
 
     def create_connections(self):
         self.browse_video_btn.clicked.connect(lambda: self.main_window.browse_file(self.video_file_path, "选择视频文件", self.main_window.video_filter))
-        # 【修改】使用新的通用字幕文件过滤器
         self.browse_lrc_btn.clicked.connect(lambda: self.main_window.browse_file(self.lrc_file_path, "选择字幕文件", self.subtitle_filter))
         self.output_dir_browse_btn.clicked.connect(lambda: self.main_window.browse_output_dir(self.output_dir))
         self.video_file_path.textChanged.connect(self.update_output_dir)
@@ -119,6 +134,10 @@ class HorizontalTab(QWidget):
         self.line_spacing_spin.setValue(15)
         self.margin_v_spin.setValue(80)
         self.wrap_width_spin.setValue(25)
+        
+        # 【修改】设置默认编码器选项
+        self.codec_combo.setCurrentText("N卡 H.264 (高质量)")
+
         self.log_output.append("ℹ️ 已加载B站风格默认参数。")
         
     def update_output_dir(self):
@@ -150,12 +169,18 @@ class HorizontalTab(QWidget):
             'wrap_style': 0,
         }
 
+        # 【修改】获取编码器名称而不是硬编码的值
+        codec_name = self.codec_combo.currentText()
+        if "直接复制" in codec_name:
+            QMessageBox.warning(self, "选项错误", "此功能需要重新编码视频以烧录字幕，\n不能使用“直接复制”模式。请选择其他编码器。")
+            return None
+
         return {
             'video_file': video_file,
             'lrc_file': lrc_file,
             'output_dir': output_dir,
             'base_path': self.main_window.base_path,
-            'codec': self.codec_combo.currentText().split(" ")[0],
+            'codec_name': codec_name, # 传递编码器名称
             'output_format': self.output_format_combo.currentText(),
             'style_params': style_params,
         }

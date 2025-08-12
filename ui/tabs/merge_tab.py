@@ -37,12 +37,15 @@ class MergeTab(QWidget):
         self.browse_output_btn = QPushButton("浏览...")
         self.output_filename_edit = QLineEdit("merged_output")
         self.output_format_combo = QComboBox()
-        # 【修改】扩展了文件格式列表
         self.default_formats = ["mp4", "mkv", "ts", "mov", "avi", "flv", "webm", "mp3", "m4a", "aac", "flac", "wav", "opus"]
         self.output_format_combo.addItems(self.default_formats)
 
         # --- 控制与日志 ---
-        self.start_button = QPushButton("开始合并")
+        self.start_button = QPushButton("开始合并 (无损/极速模式)")
+        self.start_button.setToolTip(
+            "使用无损、极速的直接复制模式合并文件。\n"
+            "要求所有待合并文件的编码、分辨率、帧率等参数必须一致！"
+        )
         self.progress_label = QLabel("等待任务...")
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
@@ -104,7 +107,6 @@ class MergeTab(QWidget):
     def clear_list(self):
         self.merge_list_widget.clear()
         self.first_file_ext = ""
-        # 恢复默认的格式列表
         self.output_format_combo.clear()
         self.output_format_combo.addItems(self.default_formats)
 
@@ -124,15 +126,11 @@ class MergeTab(QWidget):
 
         if ext and ext != self.first_file_ext:
             self.first_file_ext = ext
-            # 【修改】更健壮的默认格式设置逻辑
-            # 检查新后缀名是否已在列表中
             if ext not in self.default_formats:
-                # 如果不在，恢复默认列表，并将新后缀名插入到最前面
                 self.output_format_combo.clear()
                 self.output_format_combo.addItems([ext] + self.default_formats)
                 self.output_format_combo.setCurrentIndex(0)
             else:
-                # 如果存在，直接设为当前项
                 self.output_format_combo.setCurrentText(ext)
 
     def start_merge(self):
@@ -159,6 +157,7 @@ class MergeTab(QWidget):
         self.log_output.clear()
         
         self.thread = QThread()
+        # 注意：这里的Worker还是旧的，它内部硬编码了-c copy，这是正确的
         self.worker = MergeWorker(self.main_window.ffmpeg_path, file_list, output_path)
         self.worker.moveToThread(self.thread)
         self.worker.log_message.connect(self.log_output.append)

@@ -1,4 +1,4 @@
-# Video Editing Toolkit v1.1.0
+# Video Editing Toolkit v1.1.1
 
 <p align="center">
   <img src="assets/favicon1.ico" width="128" alt="App Icon">
@@ -34,8 +34,6 @@
 - **字幕视频合成 (Subtitle Video Synthesis)**
   - **竖屏画布字幕**: 为竖屏视频添加右侧画布，并将字幕精确居中显示。
   - **横屏字幕**: 为传统横屏视频在底部添加居中字幕。
-  - **Chatbox弹幕**: 将48tools上下载的录播文件和LRC格式的弹幕文件转换为类似直播聊天框的滚动字幕效果。
-  - **格式兼容**: 支持导入由“语音转文本”功能生成的 `.lrc`, `.srt`, `.vtt`, `.txt` 四种字幕文件。
   - **Chatbox弹幕**: 将从48系工具下载的LRC格式弹幕文件，转换为类似直播聊天框的滚动字幕效果。
   - **格式兼容**: 支持导入由“语音转文本”功能生成的四种字幕文件。
 
@@ -45,7 +43,6 @@
   - **合并媒体**: 以无损方式快速合并多个视频或音频文件。
 
 - **实用小工具 (Utilities)**
-  - **静帧导出**: 内置视频播放器，可逐帧预览并导出任意一帧为高质量图片(最好是.mp4格式的视频文件，因为.ts,.flv是直播流视频文件，下一帧会直到关键帧才会变化)。
   - **静帧导出**: 内置视频播放器，可逐帧预览并导出任意一帧为高质量图片。对于直播流文件（如.ts, .flv），逐帧功能可能受限于关键帧，建议使用.mp4以获得最佳体验。
   - **视频换背景**: 使用一张静态图片作为背景，与音频文件合成为一个新的视频。
 
@@ -60,100 +57,84 @@
 
 ## 🚀 运行与开发 (Usage & Development)
 
-我们提供两种环境配置方案，请根据您的喜好选择其一。
+### 1. 搭建开发环境 (推荐使用 Conda 或 venv)
 
-### 方案 A：便携式环境 (推荐，开箱即用)
+如果您熟悉Python虚拟环境，这是参与开发的标准方式。
 
-此方案将所有依赖项都放在项目文件夹内，不影响您电脑上的其他Python环境。
+#### a. 创建并激活虚拟环境
 
-#### 1. 搭建便携Python环境
-
-1.  **下载Python**: 前往 [Python官网](https://www.python.org/downloads/windows/)，下载 Python 3.12.x 的 **"Windows embeddable package (64-bit)"** (zip压缩包)。
-2.  **解压与放置**: 解压后，将文件夹重命名为 `python_portable`，并移动到本项目根目录下。
-3.  **启用第三方库支持**:
-    -   进入 `python_portable` 文件夹，找到 `python312._pth` 文件。
-    -   用记事本打开它，找到最后一行 `#import site`，将前面的 `#` 号和空格删掉，变成 `import site`，然后保存。
-4.  **安装pip**:
-    -   用浏览器打开 [https://bootstrap.pypa.io/get-pip.py](https://bootstrap.pypa.io/get-pip.py)，右键另存为，将 `get-pip.py` 文件保存到 `python_portable` 文件夹内。
-    -   在项目根目录打开命令行(CMD)，运行：
-      ```bash
-      .\python_portable\python.exe .\python_portable\get-pip.py
-      ```
-1.  本项目需要 `ffmpeg.exe` 和 `ffprobe.exe` 两个核心文件。推荐从 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 下载预编译好的版本。
-2.  在下载页面，找到最新的 `ffmpeg-master-latest-win64-gpl.zip` 或类似名称的文件并下载。
-3.  解压后，进入 `bin` 文件夹。
-4.  将 `ffmpeg.exe` 和 `ffprobe.exe` 这两个文件复制出来。
-5.  在本项目根目录下新建一个 `dependencies` 文件夹，将它们粘贴到文件夹里。
-#### 2. 安装依赖库 (便携式)
-在项目根目录的命令行中，继续执行：
 ```bash
-# 安装核心依赖
-.\python_portable\python.exe -m pip install pyside6 openai-whisper opencc-python-reimplemented pyinstaller
+# 使用 Conda (推荐)
+conda create -n toolkit-env python=3.12
+conda activate toolkit-env
 
-# (可选，推荐) 安装PyTorch以启用GPU加速 (以CUDA 11.8为例)
-.\python_portable\python.exe -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# 或者使用 Python 内置的 venv
+python -m venv .venv
+# Windows
+.\.venv\Scripts\activate
+# macOS/Linux
+# source .venv/bin/activate
 ```
 
-1.   先在项目根目录下新建一个`python_portable` 文件夹
-2.  打开命令行工具 (CMD)。
-3.  使用 `cd` 命令进入本项目的根目录。
-4.  执行以下命令进入 `python_portable` 目录(先在项目根目录下新建一个`python_portable` 文件夹)：
+#### b. 安装依赖库
 
-### 方案 B：使用Conda或venv虚拟环境 (适用于开发者)
+在激活的虚拟环境中，执行以下命令：
 
-如果您熟悉Python虚拟环境，这是一个更灵活的选择。
+```bash
+# 1. 安装核心依赖 
+   pip install pyside6 openai-whisper opencc-python-reimplemented 
 
-1.  **创建并激活环境**:
+
+# 2. (可选, 但强烈推荐) 安装PyTorch以启用GPU加速
+# requirements.txt 默认安装的是CPU版本。如果您的电脑配备了NVIDIA显卡，
+# 请务必执行以下命令来安装GPU版本，这可以极大地加快“语音转文本”的速度。
+#
+# 请根据您自己的CUDA版本，访问 https://pytorch.org/get-started/locally/ 
+# 获取最适合您环境的安装命令。
+#
+# 例如 (适用于CUDA 11.8):
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+### 2. 配置 FFmpeg
+
+本项目依赖 `ffmpeg.exe` 和 `ffprobe.exe` 来处理所有音视频任务。请选择以下任一方式进行配置：
+
+#### 方式 A (项目内配置)
+
+1.  **下载**: 前往 [**BtbN/FFmpeg-Builds**](https://github.com/BtbN/FFmpeg-Builds/releases) 下载预编译好的版本。
+2.  **选择文件**: 在下载页面，找到最新的 `ffmpeg-master-latest-win64-gpl.zip` 或类似名称的文件并下载。
+3.  **解压**: 解压下载的 `zip` 文件后，进入 `bin` 文件夹。
+4.  **放置**: 将 `ffmpeg.exe` 和 `ffprobe.exe` 这两个文件复制出来，粘贴到**本项目根目录下**一个**新建**的 `dependencies` 文件夹中。
+
+#### 方式 B (推荐全局配置)
+
+如果您希望在电脑的任何位置都能使用FFmpeg，可以将其添加到系统环境变量中。
+
+1.  **下载并放置**: 按照上述方式下载并解压FFmpeg，但您可以将 `bin` 文件夹放置在电脑的任意位置（例如 `D:\tools\ffmpeg\bin`）。
+2.  **编辑环境变量**:
+    *   在Windows搜索框中搜索“环境变量”，并选择“编辑系统环境变量”。
+    *   在弹出的“系统属性”窗口中，点击“环境变量...”按钮。
+    *   在“系统变量”区域，找到名为 `Path` 的变量，双击它。
+    *   在“编辑环境变量”窗口中，点击“新建”，然后将您存放 `ffmpeg.exe` 的文件夹路径（例如 `D:\tools\ffmpeg\bin`）粘贴进去。
+    *   一路点击“确定”保存所有更改。
+3.  **验证**: 重新打开一个新的命令行窗口(CMD)，输入 `ffmpeg -version` 并回车。如果能看到版本信息，说明配置成功。
+
+### 3. 运行程序
+
+-   **对于开发者**: 确保您的虚拟环境已激活，然后在项目根目录的命令行中运行：
     ```bash
-    # 使用 Conda
-    conda create -n toolkit-env python=3.12
-    conda activate toolkit-env
-
-    # 或者使用 venv
-    python -m venv .venv
-    .\.venv\Scripts\activate
+    python main.py
     ```
-5.  **安装核心依赖**:
-    ```bash
-    # 安装图形库、语音识别、简繁转换和打包工具
-    Scripts\pip.exe install pyside6 openai-whisper opencc-python-reimplemented pyinstaller
-    ```
-6.  **(可选，但强烈推荐) 安装PyTorch以启用GPU加速**:
-    如果您的电脑配备了NVIDIA显卡，安装支持CUDA的PyTorch可以极大地加快“语音转文本”的速度。
-    ```bash
-    # 访问 https://pytorch.org/get-started/locally/ 获取最适合您环境的安装命令
-    # 例如 (适用于CUDA 11.8):
-    Scripts\pip.exe install torch torchvision toraudio --index-url https://download.pytorch.org/whl/cu118
-2.  **安装依赖库**:
-    ```bash
-    # 安装核心依赖
-    pip install pyside6 openai-whisper opencc-python-reimplemented pyinstaller
+-   **对于普通用户**: 请直接下载我们打包好的发行版。
 
-    # (强烈推荐) 安装PyTorch以启用GPU加速 (以CUDA 12.1为例)
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-    ```
-
-### 3. 配置 FFmpeg (任选其一)
-
-- **方法1 (推荐)**: 在项目根目录下新建一个 `dependencies` 文件夹，从 [FFmpeg官网](https://ffmpeg.org/download.html) 或 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 下载后，将 `ffmpeg.exe` 和 `ffprobe.exe` 放入此文件夹。
-- **方法2 (全局)**: 将 `ffmpeg.exe` 和 `ffprobe.exe` 所在的文件夹路径添加到您电脑的系统环境变量 `PATH` 中。
-
-### 4. 运行程序
-
-- **如果您使用了方案A (便携式)**: 直接双击项目根目录的 `run_app.bat` 文件。
-- **如果您使用了方案B (虚拟环境)**: 确保您的虚拟环境已激活，然后在命令行中运行 `python main.py`。
-
-1.  前往本仓库的 [**Releases**](https://github.com/Albert-Chen04/Video-Editing-Toolkit/releases) 页面。
-2.  下载最新版本的 `.exe` 程序。
-3.  双击运行即可。
-
-### 5. 使用发行版 (For End Users)
+### 4. 使用发行版 (For End Users)
 
 如果您不想进行任何环境配置，可以直接下载我们打包好的版本：
 
 1.  前往本仓库的 [**Releases**](https://github.com/Albert-Chen04/Video-Editing-Toolkit/releases) 页面。
 2.  下载最新版本的 `.zip` 压缩包。
-3.  解压后，双击运行里面的 `.exe` 程序即可。
+3.  解压后，双击运行里面的 `VideoEditingToolkit-v1.1.1.exe` 程序即可。
 
 ## 🤝 贡献 (Contributing)
 

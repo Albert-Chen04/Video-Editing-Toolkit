@@ -2,7 +2,6 @@
 
 import os
 import re
-# 【最终修正】在这里添加了 QComboBox 和其他可能遗漏的控件
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit,
                                QTextEdit, QMessageBox, QFrame, QTableWidget, QTableWidgetItem,
                                QHeaderView, QAbstractItemView, QComboBox)
@@ -10,6 +9,8 @@ from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.clip_worker import BatchClipWorker
 from ui.dialogs import ClipDialog
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class ClipTab(QWidget):
     def __init__(self, main_window):
@@ -22,6 +23,8 @@ class ClipTab(QWidget):
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
+        # 【新增】调用设置默认值
+        self.set_default_options()
 
     def create_widgets(self):
         # --- 源视频 ---
@@ -44,12 +47,22 @@ class ClipTab(QWidget):
         self.clip_output_browse_btn = QPushButton("浏览...")
 
         # --- 参数 ---
-        # 这一行现在可以正常工作了
         self.clip_format_combo = QComboBox()
         self.clip_format_combo.addItems(["mp4", "mkv", "ts", "mp3", "aac", "flac", "wav"])
-        self.clip_codec_combo = QComboBox()
-        self.clip_codec_combo.addItems(["copy (无损复制)", "h264_nvenc (N卡)", "libx264 (CPU)"])
         
+        self.clip_codec_combo = QComboBox()
+        # 【修改】从统一配置模块动态加载编码器选项
+        encoder_options = get_encoder_options()
+        self.clip_codec_combo.addItems(encoder_options)
+        # 【修改】为 "直接复制" 选项添加 ToolTip
+        copy_index = -1
+        try:
+            copy_index = encoder_options.index("直接复制 (无损/极速)")
+        except ValueError:
+            pass
+        if copy_index != -1:
+            self.clip_codec_combo.setItemData(copy_index, get_copy_tooltip(), Qt.ToolTipRole)
+
         # --- 进度和日志 ---
         self.clip_progress_label = QLabel("等待任务...")
         self.clip_log_output = QTextEdit()
@@ -103,11 +116,15 @@ class ClipTab(QWidget):
         self.clip_source_video.textChanged.connect(self.update_clip_output_dir)
         self.add_clip_btn.clicked.connect(self.add_clip_item)
         self.edit_clip_btn.clicked.connect(self.edit_clip_item)
-        self.clip_table.itemDoubleClicked.connect(self.edit_clip_item) # 双击也可编辑
+        self.clip_table.itemDoubleClicked.connect(self.edit_clip_item)
         self.remove_clip_btn.clicked.connect(self.remove_clip_item)
         self.clear_clips_btn.clicked.connect(lambda: self.clip_table.setRowCount(0))
         self.clip_output_browse_btn.clicked.connect(lambda: self.main_window.browse_output_dir(self.clip_output_dir))
         self.start_clip_button.clicked.connect(self.start_batch_clipping)
+
+    # 【新增】设置默认选项的函数
+    def set_default_options(self):
+        self.clip_codec_combo.setCurrentText("直接复制 (无损/极速)")
         
     def update_clip_output_dir(self):
         video_path = self.clip_source_video.text()
@@ -125,15 +142,14 @@ class ClipTab(QWidget):
                 self.clip_table.setItem(row_position, 1, QTableWidgetItem(start))
                 self.clip_table.setItem(row_position, 2, QTableWidgetItem(end))
 
-    def edit_clip_item(self, item=None): # Modified to accept item from double click
+    def edit_clip_item(self, item=None):
         selected_items = self.clip_table.selectedItems()
         if not selected_items:
-            # If called by button click and nothing selected
             QMessageBox.information(self, "提示", "请先在表格中选择要编辑的行。")
             return
             
-        row = self.clip_table.currentRow() # Use currentRow for reliability
-        if row == -1: return # Nothing selected
+        row = self.clip_table.currentRow()
+        if row == -1: return
         
         current_name = self.clip_table.item(row, 0).text()
         current_start = self.clip_table.item(row, 1).text()
@@ -180,10 +196,11 @@ class ClipTab(QWidget):
                 return
             clip_list.append({'name': name, 'start': start, 'end': end})
 
+        # 【修改】获取编码器名称
         options = {
             'output_dir': output_dir,
             'format': self.clip_format_combo.currentText(),
-            'codec': self.clip_codec_combo.currentText()
+            'codec_name': self.clip_codec_combo.currentText()
         }
 
         self.set_controls_enabled(False)

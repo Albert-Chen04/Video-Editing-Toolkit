@@ -4,11 +4,13 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, Q
                                QProgressBar, QComboBox, QTextEdit, QMessageBox, 
                                QGridLayout, QSpinBox, QDoubleSpinBox, QApplication, QFontComboBox, QFrame)
 from PySide6.QtGui import QFont
-from PySide6.QtCore import QThread, Slot
+from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.subtitle_worker import SubtitleBurnWorker, PreviewWorker
 from core.subtitle_converter import lrc_to_ass_chatbox_region
 from ui.dialogs import PreviewDialog
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class SubtitleTab(QWidget):
     def __init__(self, main_window):
@@ -34,7 +36,7 @@ class SubtitleTab(QWidget):
         self.video_file_path_sub = QLineEdit()
         self.browse_video_sub_btn = QPushButton("浏览视频...")
         self.lrc_file_path_sub = QLineEdit()
-        self.browse_lrc_sub_btn = QPushButton("浏览字幕...")
+        self.browse_lrc_sub_btn = QPushButton("浏览弹幕...")
         self.output_dir_sub = QLineEdit()
         self.output_dir_sub_browse_btn = QPushButton("浏览...")
 
@@ -70,7 +72,18 @@ class SubtitleTab(QWidget):
 
         # --- 编码器和控制按钮 ---
         self.sub_codec_combo = QComboBox()
-        self.sub_codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        # 【修改】从统一配置模块动态加载编码器选项
+        encoder_options = get_encoder_options()
+        self.sub_codec_combo.addItems(encoder_options)
+        # 【修改】为 "直接复制" 选项添加 ToolTip
+        copy_index = -1
+        try:
+            copy_index = encoder_options.index("直接复制 (无损/极速)")
+        except ValueError:
+            pass
+        if copy_index != -1:
+            self.sub_codec_combo.setItemData(copy_index, get_copy_tooltip(), Qt.ToolTipRole)
+
         self.sub_output_format_combo = QComboBox()
         self.sub_output_format_combo.addItems(["mp4", "mkv", "mov", "webm", "avi", "flv", "ts"])
         self.preview_button_sub = QPushButton("生成预览图")
@@ -90,7 +103,7 @@ class SubtitleTab(QWidget):
         input_layout.addWidget(QLabel("视频文件:"), 0, 0)
         input_layout.addWidget(self.video_file_path_sub, 0, 1)
         input_layout.addWidget(self.browse_video_sub_btn, 0, 2)
-        input_layout.addWidget(QLabel("字幕文件:"), 1, 0)
+        input_layout.addWidget(QLabel("弹幕文件:"), 1, 0)
         input_layout.addWidget(self.lrc_file_path_sub, 1, 1)
         input_layout.addWidget(self.browse_lrc_sub_btn, 1, 2)
         input_layout.addWidget(QLabel("输出文件夹:"), 2, 0)
@@ -115,9 +128,9 @@ class SubtitleTab(QWidget):
         params_layout.addWidget(QLabel("描边宽度:"), 1, 2)
         params_layout.addWidget(self.sub_outline_spin, 1, 3)
         
-        params_layout.addWidget(QLabel("额外行间距:"), 2, 0)
+        params_layout.addWidget(QLabel("行间距:"), 2, 0)
         params_layout.addWidget(self.sub_line_spacing, 2, 1)
-        params_layout.addWidget(QLabel("额外字间距:"), 2, 2)
+        params_layout.addWidget(QLabel("字间距:"), 2, 2)
         params_layout.addWidget(self.sub_letter_spacing, 2, 3)
 
         params_layout.addWidget(QLabel("自动换行宽度 (字符):"), 3, 0)
@@ -157,7 +170,7 @@ class SubtitleTab(QWidget):
         
     def create_connections(self):
         self.browse_video_sub_btn.clicked.connect(lambda: self.main_window.browse_file(self.video_file_path_sub, "选择视频文件", self.main_window.video_filter))
-        self.browse_lrc_sub_btn.clicked.connect(lambda: self.main_window.browse_file(self.lrc_file_path_sub, "选择字幕文件", "文本文件 (*.lrc *.txt);;所有文件 (*.*)"))
+        self.browse_lrc_sub_btn.clicked.connect(lambda: self.main_window.browse_file(self.lrc_file_path_sub, "选择弹幕文件", "文本文件 (*.lrc *.txt);;所有文件 (*.*)"))
         self.output_dir_sub_browse_btn.clicked.connect(lambda: self.main_window.browse_output_dir(self.output_dir_sub))
         self.video_file_path_sub.textChanged.connect(self.update_subtitle_output_dir)
         self.preset_bilibili_btn.clicked.connect(self.load_bilibili_preset)
@@ -170,13 +183,17 @@ class SubtitleTab(QWidget):
         self.sub_font_size.setValue(18)
         self.sub_primary_color_combo.setCurrentText("白色")
         self.sub_outline_spin.setValue(0)
-        self.sub_line_spacing.setValue(0)
+        self.sub_line_spacing.setValue(15)
         self.sub_letter_spacing.setValue(0)
         self.sub_wrap_width.setValue(18)
         self.sub_chatbox_height_ratio.setValue(0.20)
         self.sub_margin_left.setValue(40)
         self.sub_margin_bottom.setValue(198)
         self.sub_chatbox_duration.setValue(10)
+        
+        # 【修改】设置默认编码器选项
+        self.sub_codec_combo.setCurrentText("N卡 H.264 (高质量)")
+
         self.log_output_sub.append("ℹ️ 已加载 [手机B站] 参数预设。")
 
     def load_weibo_preset(self):
@@ -184,13 +201,17 @@ class SubtitleTab(QWidget):
         self.sub_font_size.setValue(15)
         self.sub_primary_color_combo.setCurrentText("白色")
         self.sub_outline_spin.setValue(0)
-        self.sub_line_spacing.setValue(0)
+        self.sub_line_spacing.setValue(15)
         self.sub_letter_spacing.setValue(0)
         self.sub_wrap_width.setValue(15)
         self.sub_chatbox_height_ratio.setValue(0.22)
         self.sub_margin_left.setValue(50)
         self.sub_margin_bottom.setValue(190)
         self.sub_chatbox_duration.setValue(10)
+
+        # 【修改】设置默认编码器选项
+        self.sub_codec_combo.setCurrentText("N卡 H.264 (高质量)")
+
         self.log_output_sub.append("ℹ️ 已加载 [手机微博] 参数预设。")
 
     def update_subtitle_output_dir(self):
@@ -206,7 +227,7 @@ class SubtitleTab(QWidget):
         if not (video_file and os.path.exists(video_file)):
             QMessageBox.warning(self, "错误", "请先选择有效的视频文件！"); return None
         if not (lrc_file and os.path.exists(lrc_file)):
-            QMessageBox.warning(self, "错误", "请先选择有效的字幕文件！"); return None
+            QMessageBox.warning(self, "错误", "请先选择有效的弹幕文件！"); return None
         
         ass_options = {
             'font_name': self.sub_font_name.currentFont().family(),
@@ -222,12 +243,18 @@ class SubtitleTab(QWidget):
             'outline': self.sub_outline_spin.value()
         }
         
+        # 【修改】获取编码器名称而不是硬编码的值
+        codec_name = self.sub_codec_combo.currentText()
+        if "直接复制" in codec_name:
+            QMessageBox.warning(self, "选项错误", "此功能需要重新编码视频以烧录弹幕，\n不能使用“直接复制”模式。请选择其他编码器。")
+            return None
+
         return {
             'video_file': video_file,
             'lrc_file': lrc_file,
             'output_dir': output_dir,
             'base_path': self.main_window.base_path,
-            'codec': self.sub_codec_combo.currentText().split(" ")[0],
+            'codec_name': codec_name, # 传递编码器名称
             'output_format': self.sub_output_format_combo.currentText(),
             'ass_options': ass_options
         }

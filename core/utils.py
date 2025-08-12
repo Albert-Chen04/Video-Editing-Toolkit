@@ -5,14 +5,33 @@
 import subprocess
 import os
 import json
+import shutil
+
+def find_executable(name, project_path=None):
+    """
+    按优先级顺序查找一个可执行文件。
+    1. 在项目指定的路径下查找 (如果提供了 project_path)。
+    2. 在系统的 PATH 环境变量中查找。
+    
+    :param name: 可执行文件名 (例如 'ffmpeg.exe')
+    :param project_path: 项目内指定的路径 (例如 'E:/Project/dependencies/ffmpeg.exe')
+    :return: 可执行文件的有效路径，如果找不到则返回 None。
+    """
+    # 优先级1：检查项目内部路径
+    if project_path and os.path.exists(project_path):
+        return project_path
+    
+    # 优先级2：检查系统环境变量
+    executable_path = shutil.which(name)
+    if executable_path:
+        return executable_path
+        
+    return None
+
 
 def get_video_duration(video_path: str, ffprobe_path: str) -> float:
     """
     使用ffprobe获取视频的总时长（秒）。
-    
-    :param video_path: 视频文件路径。
-    :param ffprobe_path: ffprobe.exe的路径。
-    :return: 视频时长（浮点数），如果失败则返回0。
     """
     if not os.path.exists(video_path):
         return 0.0
@@ -29,10 +48,6 @@ def get_video_duration(video_path: str, ffprobe_path: str) -> float:
 def get_video_dimensions(video_path: str, ffprobe_path: str) -> (int, int, str):
     """
     使用ffprobe获取视频的分辨率（宽和高）。
-    
-    :param video_path: 视频文件路径。
-    :param ffprobe_path: ffprobe.exe的路径。
-    :return: (宽度, 高度, 消息) 元组。成功时返回 (宽, 高, "成功消息")，失败时返回 (None, None, "错误消息")。
     """
     if not os.path.exists(video_path):
         return None, None, f"错误：找不到视频文件 '{video_path}'"
@@ -49,14 +64,9 @@ def get_video_dimensions(video_path: str, ffprobe_path: str) -> (int, int, str):
     except Exception as e:
         return None, None, f"获取视频尺寸失败: {e}"
 
-# 【新增】一个更强大的函数，用于获取视频流的详细信息
 def get_video_stream_info(video_path: str, ffprobe_path: str) -> (dict, str):
     """
     使用 ffprobe 获取视频文件的第一个视频流的详细信息。
-
-    :param video_path: 视频文件路径。
-    :param ffprobe_path: ffprobe.exe 的路径。
-    :return: (信息字典, 错误消息) 元组。成功时返回 (stream_info, None)，失败时返回 (None, error_message)。
     """
     if not os.path.exists(video_path):
         return None, f"错误：找不到视频文件 '{video_path}'"
@@ -66,7 +76,7 @@ def get_video_stream_info(video_path: str, ffprobe_path: str) -> (dict, str):
         "-v", "quiet",
         "-print_format", "json",
         "-show_streams",
-        "-select_streams", "v:0", # 只选择第一个视频流
+        "-select_streams", "v:0",
         video_path
     ]
     try:

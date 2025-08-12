@@ -6,6 +6,8 @@ from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration, get_video_dimensions
 from core.subtitle_converter import lrc_to_centered_canvas_ass
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_codec_params
 
 class CanvasBurnWorker(QObject):
     """在后台执行竖屏视频+画布+字幕的合成任务。"""
@@ -59,13 +61,19 @@ class CanvasBurnWorker(QObject):
 
             command = [
                 '-hide_banner', '-i', video_file,
-                '-vf', vf_chain,
-                '-c:v', self.params['codec'],
-                # 【修复】强制重新编码音频以保证同步，不再使用 '-c:a', 'copy'
-                '-c:a', 'aac', '-b:a', '192k',
-                '-preset', 'p5', '-cq', '18',
-                '-y', output_file
+                '-vf', vf_chain
             ]
+            
+            # 【修改】动态获取并添加编码器参数
+            codec_name = self.params.get('codec_name', 'CPU x264 (高兼容)')
+            codec_params = get_codec_params(codec_name)
+            command.extend(codec_params)
+
+            # 添加音频参数（强制重编码以保证同步）
+            command.extend(['-c:a', 'aac', '-b:a', '192k'])
+
+            # 添加输出文件和覆盖参数
+            command.extend(['-y', output_file])
             
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             self.log_message.emit(f"🚀 执行命令: {' '.join(['ffmpeg'] + command)}")

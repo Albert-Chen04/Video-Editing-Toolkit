@@ -5,9 +5,10 @@ import os
 from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration
+# 【新增】导入统一编码器配置模块
+from core.codec_config import get_codec_params
 
 class BatchTranscodeWorker(QObject):
-    # 【修正】整个类的内容都需要缩进
     """
     在后台线程中执行批量转码/提取音频的任务。
     通过信号(Signal)与主UI线程通信，汇报进度和结果。
@@ -28,6 +29,9 @@ class BatchTranscodeWorker(QObject):
 
     def run(self):
         total_files = len(self.file_queue)
+        # 【修改】获取编码器名称
+        codec_name = self.options.get('codec_name', '直接复制 (无损/极速)')
+
         for i, input_file in enumerate(self.file_queue):
             if not self._is_running:
                 break
@@ -43,12 +47,21 @@ class BatchTranscodeWorker(QObject):
             output_file = os.path.join(output_dir, f"{base_name}_converted.{ext}").replace("\\", "/")
 
             command = ['-hide_banner', '-i', input_file]
+            
+            # 【修改】重构编码器参数逻辑
             if "提取" in selected_format:
                 codec_map = {"aac": "aac", "mp3": "libmp3lame", "flac": "flac", "wav": "pcm_s16le", "opus": "libopus"}
                 command.extend(['-vn', '-c:a', codec_map.get(ext, 'aac')])
             else:
-                codec = self.options['codec'].split(" ")[0]
-                command.extend(['-c:v', codec, '-c:a', 'copy'])
+                if "直接复制" in codec_name:
+                    # 对于转码，直接复制意味着音视频流都复制
+                    command.extend(['-c', 'copy'])
+                else:
+                    # 获取动态编码参数
+                    codec_params = get_codec_params(codec_name)
+                    command.extend(codec_params)
+                    # 音频流默认直接复制
+                    command.extend(['-c:a', 'copy'])
             
             command.extend(['-y', output_file])
 

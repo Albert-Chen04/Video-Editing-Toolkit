@@ -2,12 +2,11 @@
 
 import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit,
-                               QProgressBar, QComboBox, QTextEdit, QMessageBox, QGridLayout)
+                               QProgressBar, QComboBox, QTextEdit, QMessageBox, QGridLayout, QApplication)
 from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.vbg_worker import VideoFromBgWorker
-# 【移除】不再需要 ImageCropDialog
-# from ui.dialogs import ImageCropDialog
+from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class VideoFromBgTab(QWidget):
     def __init__(self, main_window):
@@ -16,12 +15,11 @@ class VideoFromBgTab(QWidget):
 
         self.thread = None
         self.worker = None
-        # 【移除】不再需要裁剪参数
-        # self.vbg_crop_filter = None
 
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
+        self.set_default_options()
 
     def create_widgets(self):
         # --- 输入 ---
@@ -29,21 +27,28 @@ class VideoFromBgTab(QWidget):
         self.vbg_audio_browse_btn = QPushButton("浏览音频/视频源...")
         self.vbg_bg_image = QLineEdit()
         self.vbg_bg_browse_btn = QPushButton("浏览背景图片...")
-        # 【移除】裁剪按钮
-        # self.vbg_preview_crop_btn = QPushButton("裁剪预览...")
         
         # --- 输出 ---
         self.vbg_output_dir = QLineEdit()
         self.vbg_output_browse_btn = QPushButton("浏览...")
         
         # --- 参数 ---
-        # 【移除】分辨率下拉框
-        # self.vbg_resolution_combo = QComboBox()
-        # self.vbg_resolution_combo.addItems(["1920x1080 (1080p 横屏)", "1080x1920 (1080p 竖屏)", "1280x720 (720p 横屏)"])
         self.vbg_format_combo = QComboBox()
         self.vbg_format_combo.addItems(["mp4", "mkv", "mov", "flv", "ts"])
+        
         self.vbg_codec_combo = QComboBox()
-        self.vbg_codec_combo.addItems(["h264_nvenc (N卡)", "hevc_nvenc (N卡)", "libx264 (CPU)"])
+        encoder_options = get_encoder_options()
+        self.vbg_codec_combo.addItems(encoder_options)
+        
+        copy_index = -1
+        try:
+            copy_index = encoder_options.index("直接复制 (无损/极速)")
+        except ValueError:
+            pass
+        if copy_index != -1:
+            self.vbg_codec_combo.setItemData(copy_index, get_copy_tooltip(), Qt.ToolTipRole)
+            item = self.vbg_codec_combo.model().item(copy_index)
+            item.setEnabled(False)
         
         # --- 进度和日志 ---
         self.vbg_progress_bar = QProgressBar()
@@ -64,8 +69,6 @@ class VideoFromBgTab(QWidget):
         bg_image_layout.addWidget(QLabel("背景图片:"))
         bg_image_layout.addWidget(self.vbg_bg_image)
         bg_image_layout.addWidget(self.vbg_bg_browse_btn)
-        # 【移除】裁剪按钮的布局
-        # bg_image_layout.addWidget(self.vbg_preview_crop_btn)
 
         output_path_layout = QHBoxLayout()
         output_path_layout.addWidget(QLabel("输出文件夹:"))
@@ -73,9 +76,6 @@ class VideoFromBgTab(QWidget):
         output_path_layout.addWidget(self.vbg_output_browse_btn)
 
         params_layout = QGridLayout()
-        # 【移除】分辨率相关的布局
-        # params_layout.addWidget(QLabel("输出分辨率:"), 0, 0)
-        # params_layout.addWidget(self.vbg_resolution_combo, 0, 1)
         params_layout.addWidget(QLabel("输出格式:"), 0, 0)
         params_layout.addWidget(self.vbg_format_combo, 0, 1)
         params_layout.addWidget(QLabel("视频编码器:"), 1, 0)
@@ -95,18 +95,16 @@ class VideoFromBgTab(QWidget):
         self.vbg_audio_browse_btn.clicked.connect(lambda: self.main_window.browse_file(self.vbg_audio_source, "选择音频或视频源", self.main_window.media_filter))
         self.vbg_audio_source.textChanged.connect(self.update_vbg_output_dir)
         self.vbg_bg_browse_btn.clicked.connect(lambda: self.main_window.browse_file(self.vbg_bg_image, "选择背景图片", "图片文件 (*.jpg *.jpeg *.png)"))
-        # 【移除】裁剪按钮的连接
-        # self.vbg_preview_crop_btn.clicked.connect(self.open_crop_dialog)
         self.vbg_output_browse_btn.clicked.connect(lambda: self.main_window.browse_output_dir(self.vbg_output_dir))
         self.start_vbg_button.clicked.connect(self.start_video_from_bg)
+        
+    def set_default_options(self):
+        self.vbg_codec_combo.setCurrentText("N卡 H.264 (高质量)")
         
     def update_vbg_output_dir(self):
         audio_path = self.vbg_audio_source.text()
         if audio_path and os.path.exists(audio_path):
              self.vbg_output_dir.setText(os.path.dirname(audio_path))
-
-    # 【移除】整个 open_crop_dialog 方法
-    # def open_crop_dialog(self): ...
 
     def start_video_from_bg(self):
         audio_source = self.vbg_audio_source.text()
@@ -128,13 +126,12 @@ class VideoFromBgTab(QWidget):
         self.vbg_progress_bar.setVisible(True)
         self.vbg_progress_bar.setValue(0)
         
-        # 【修改】简化传递的参数，不再包含分辨率和裁剪信息
         params = {
             'audio_source': audio_source, 
             'bg_image': bg_image, 
             'output_dir': output_dir,
             'format': self.vbg_format_combo.currentText(),
-            'codec': self.vbg_codec_combo.currentText()
+            'codec_name': self.vbg_codec_combo.currentText()
         }
         
         self.thread = QThread()
@@ -149,6 +146,7 @@ class VideoFromBgTab(QWidget):
         self.thread.started.connect(self.worker.run)
         self.thread.start()
 
+    # 【最终修复】将 @Slot 恢复为 int，因为Worker现在会发送一个安全的整数
     @Slot(int, str)
     def on_vbg_finished(self, return_code, message):
         self.vbg_progress_bar.setValue(100)
@@ -156,7 +154,7 @@ class VideoFromBgTab(QWidget):
         if return_code == 0:
             QMessageBox.information(self, "成功", message)
         else:
-            QMessageBox.critical(self, "失败", message)
+            QMessageBox.critical(self, "失败", f"{message}\n(错误码: {return_code})")
         
         self.set_controls_enabled(True)
         self.vbg_progress_bar.setVisible(False)
@@ -166,3 +164,5 @@ class VideoFromBgTab(QWidget):
         self.vbg_audio_browse_btn.setEnabled(enabled)
         self.vbg_bg_browse_btn.setEnabled(enabled)
         self.vbg_output_browse_btn.setEnabled(enabled)
+        self.vbg_format_combo.setEnabled(enabled)
+        self.vbg_codec_combo.setEnabled(enabled)
