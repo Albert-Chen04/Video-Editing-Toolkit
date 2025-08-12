@@ -1,0 +1,17 @@
+# ==============================================================================
+#  核心功能依赖 (Core Functionality)
+# ==============================================================================
+pyside6
+openai-whisper
+opencc-python-reimplemented
+
+# ==============================================================================
+#  PyTorch 相关 (PyTorch Dependencies)
+#  注意: 为了使用GPU加速，请根据您自己的CUDA版本，
+#  访问 https://pytorch.org/get-started/locally/ 获取对应的安装命令。
+#  例如 (CUDA 11.8):
+#  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# ==============================================================================
+torch
+torchvision
+torchaudio
