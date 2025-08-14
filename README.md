@@ -66,9 +66,17 @@
 
 ---
 
-#### 1.1. **【推荐】GPU 加速版 (适用于NVIDIA显卡用户)**
+#### 1.1 **【推荐】GPU 加速版 (适用于NVIDIA显卡用户)**
 
-如果您的电脑配备了 **NVIDIA 显卡**，请务必下载此版本以获得极致的“语音转文本”性能（文件超过2G只能通过网盘链接下载）
+如果您的电脑配备了 **NVIDIA 显卡**，请务必下载此版本以获得极致的“语音转文本”性能。
+
+下载下方压缩包：
+
+1.  下载下方的 `VideoEditingToolkit-v1.1.1-Windows-GPU.7z` 压缩包。
+2.  解压到一个您喜欢的位置。
+3.  双击运行文件夹内的 `VideoEditingToolkit-v1.1.1-Windows-GPU.exe` 即可。
+
+也支持网盘下载：
 
 -   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-GPU.zip`
 -   **体积**: ~2.74 GB
@@ -78,9 +86,19 @@
 
 ---
 
-#### 1.2. **CPU 精简版 (适用于所有Windows电脑)**
+#### 1.2 **CPU 精简版 (适用于所有Windows电脑)**
 
 如果您的电脑没有NVIDIA显卡，或者您希望获得一个体积更小的版本（比GPU版少了“语音转文本”加速的功能）请下载此版本。
+
+下载下方压缩包：
+
+1.  下载下方的 `VideoEditingToolkit-v1.1.1-Windows-CPU.zip` 压缩包。
+2.  解压到一个您喜欢的位置。
+3.  双击运行文件夹内的 `VideoEditingToolkit-v1.1.1-Windows-CPU.exe` 即可。
+
+
+
+也支持网盘下载：
 
 -   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-CPU.zip`
 -   **体积**: ~349 MB
@@ -88,22 +106,19 @@
     -   **夸克云盘**: https://pan.quark.cn/s/81b449fb0d82
     -   **百度网盘**: https://pan.baidu.com/s/1dOlo8FHLptRK7rRzKACVBw  **提取码**: `8888`
 
+---
 
-    <!-- 【请务必将上面的 xxxxxxxx 和 abcd 替换为您自己的真实分享链接和提取码】 -->
-（可通过上面网盘链接下载，也可下载下方压缩包）
-1.  下载下方的 `VideoEditingToolkit-v1.1.1-Windows-CPU.zip` 压缩包。
-2.  解压到一个您喜欢的位置。
-3.  双击运行文件夹内的 `VideoEditingToolkit-v1.1.1-Windows-CPU.exe` 即可。
-
-#### 1.3. whisper模型下载
-打开软件，语音转文本选择想用的模型，第一次转录就会先开始下载模型，在`cmd`可以查看模型下载和转录进度。  
-如果因为网络下载出现问题，可以通过下面链接下载，然后替换掉`models`文件夹(包括ui界面的所有模型，按需下载）
+#### 1.3 whisper模型下载
+语音转文本选择想用的模型，第一次转录就会先开始下载模型，在cmd可以查看模型下载和转录进度。  
+如果因为网络下载出现问题，可以通过下面链接下载，然后替换掉models文件夹(包括uij界面的所有模型，按需下载）
 
 -   **文件名**: `models`
 -   **体积**: ~10G
 -   **下载链接**:
     -   **夸克云盘**: https://pan.quark.cn/s/272f7e8a65bd
     -   **百度网盘**: https://pan.baidu.com/s/18FaHpYwZTk787AgIvyKffw  **提取码**: `8888`
+
+---
 
 ### 2. 搭建开发环境 (开发者配置)
 
