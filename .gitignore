@@ -21,7 +21,7 @@ __pycache__/
 # PyInstaller 生成的文件
 /build/
 /dist/
-*.spec
+
 
 # 直接在根目录生成的 .exe 文件 (例如本地测试编译)
 *.exe

@@ -57,9 +57,59 @@
 
 ## 🚀 运行与开发 (Usage & Development)
 
-### 1. 搭建开发环境 (推荐使用 Conda 或 venv)
+### 1. 使用发行版 (普通用户)
+
+如果您不想进行任何环境配置，可以直接下载我们打包好的版本：
+
+
+我们为您提供了两个版本，请根据您的电脑配置选择下载：
+
+---
+
+#### 1.1. **【推荐】GPU 加速版 (适用于NVIDIA显卡用户)**
+
+如果您的电脑配备了 **NVIDIA 显卡**，请务必下载此版本以获得极致的“语音转文本”性能（文件超过2G只能通过网盘链接下载）
+
+-   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-GPU.zip`
+-   **体积**: ~2.74 GB
+-   **下载链接**:
+    -   **夸克云盘**: https://pan.quark.cn/s/ed8700ffe8be
+    -   **百度网盘**: https://pan.baidu.com/s/1StyNYv9YXhgFojvOEgVwSQ **提取码**: `8888`
+
+---
+
+#### 1.2. **CPU 精简版 (适用于所有Windows电脑)**
+
+如果您的电脑没有NVIDIA显卡，或者您希望获得一个体积更小的版本（比GPU版少了“语音转文本”加速的功能）请下载此版本。
+
+-   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-CPU.zip`
+-   **体积**: ~349 MB
+-   **下载链接**:
+    -   **夸克云盘**: https://pan.quark.cn/s/81b449fb0d82
+    -   **百度网盘**: https://pan.baidu.com/s/1dOlo8FHLptRK7rRzKACVBw  **提取码**: `8888`
+
+
+    <!-- 【请务必将上面的 xxxxxxxx 和 abcd 替换为您自己的真实分享链接和提取码】 -->
+（可通过上面网盘链接下载，也可下载下方压缩包）
+1.  下载下方的 `VideoEditingToolkit-v1.1.1-Windows-CPU.zip` 压缩包。
+2.  解压到一个您喜欢的位置。
+3.  双击运行文件夹内的 `VideoEditingToolkit-v1.1.1-Windows-CPU.exe` 即可。
+
+#### 1.3. whisper模型下载
+打开软件，语音转文本选择想用的模型，第一次转录就会先开始下载模型，在`cmd`可以查看模型下载和转录进度。  
+如果因为网络下载出现问题，可以通过下面链接下载，然后替换掉`models`文件夹(包括ui界面的所有模型，按需下载）
+
+-   **文件名**: `models`
+-   **体积**: ~10G
+-   **下载链接**:
+    -   **夸克云盘**: https://pan.quark.cn/s/272f7e8a65bd
+    -   **百度网盘**: https://pan.baidu.com/s/18FaHpYwZTk787AgIvyKffw  **提取码**: `8888`
+
+### 2. 搭建开发环境 (开发者配置)
 
 如果您熟悉Python虚拟环境，这是参与开发的标准方式。
+
+#### 2.1. 创建虚拟环境
 
 #### a. 创建并激活虚拟环境
 
@@ -82,8 +132,7 @@ python -m venv .venv
 
 ```bash
 # 1. 安装核心依赖 
-   pip install pyside6 openai-whisper opencc-python-reimplemented 
-
+pip install pyside6 openai-whisper opencc-python-reimplemented 
 
 # 2. (可选, 但强烈推荐) 安装PyTorch以启用GPU加速
 # requirements.txt 默认安装的是CPU版本。如果您的电脑配备了NVIDIA显卡，
@@ -96,7 +145,7 @@ python -m venv .venv
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
-### 2. 配置 FFmpeg
+#### 2.2. 配置 FFmpeg
 
 本项目依赖 `ffmpeg.exe` 和 `ffprobe.exe` 来处理所有音视频任务。请选择以下任一方式进行配置：
 
@@ -120,7 +169,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
     *   一路点击“确定”保存所有更改。
 3.  **验证**: 重新打开一个新的命令行窗口(CMD)，输入 `ffmpeg -version` 并回车。如果能看到版本信息，说明配置成功。
 
-### 3. 运行程序
+#### 2.3. 运行程序
 
 -   **对于开发者**: 确保您的虚拟环境已激活，然后在项目根目录的命令行中运行：
     ```bash
@@ -128,17 +177,48 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
     ```
 -   **对于普通用户**: 请直接下载我们打包好的发行版。
 
-### 4. 使用发行版 (For End Users)
 
-如果您不想进行任何环境配置，可以直接下载我们打包好的版本：
+## 🙏 致谢 (Acknowledgements)
 
-1.  前往本仓库的 [**Releases**](https://github.com/Albert-Chen04/Video-Editing-Toolkit/releases) 页面。
-2.  下载最新版本的 `.zip` 压缩包。
-3.  解压后，双击运行里面的 `VideoEditingToolkit-v1.1.1.exe` 程序即可。
+本项目的诞生和完善，离不开许多人的无私帮助和宝贵建议，在此向他们致以最诚挚的谢意。
+
+#### 核心贡献
+
+*   **西塞罗([@Gexi0619](https://github.com/Gexi0619))**
+    -   感谢您在项目架构上提供的专业指导。帮我添加统一编码器配置模块，实现统一管理编码器的功能；还提供了优化视频换背景图运行速度的思路，大大提升了运行速度，也大大降低了文件体积。
+
+*   **我的高中同桌([@cheying123](https://github.com/cheying123))**
+    -   感谢您对ui界面的修改，让软件ui界面看起来更高级。
+
+#### 测试与支持
+
+*   同时，也要特别感谢所有参与了早期版本测试的朋友们。你们耐心细致地帮我测试打包后的软件是否缺少依赖文件，是这个项目能够不断变得稳定和易用的幕后英雄。
+
+没有你们，就没有 Video Editing Toolkit 的今天。谢谢大家！
 
 ## 🤝 贡献 (Contributing)
 
-欢迎提交问题 (Issues) 或拉取请求 (Pull Requests)！
+我们热烈欢迎各种形式的贡献，无论是报告Bug、提出功能建议，还是直接贡献代码！
+
+如果您想为本项目做出贡献，请遵循以下步骤：
+
+1.  **Fork 本仓库**: 首先，请点击页面右上角的 "Fork" 按钮，将本仓库复制到您自己的GitHub账户下。
+2.  **创建新分支 (Create a New Branch)**: 在您自己的仓库中，基于 `main` 分支创建一个新的、有意义的分支名称，例如 `feature/add-new-filter` 或 `fix/ui-bug`。
+    ```bash
+    git checkout -b feature/your-new-feature
+    ```
+3.  **进行修改 (Make Your Changes)**: 在新的分支上，尽情地施展您的才华吧！
+5.  **提交您的修改 (Commit Your Changes)**:
+    ```bash
+    git commit -m "Feat: 添加了一个新的滤镜功能"
+    ```
+6.  **推送到您的Fork (Push to Your Fork)**:
+    ```bash
+    git push origin feature/your-new-feature
+    ```
+7.  **创建拉取请求 (Open a Pull Request)**: 回到您在GitHub上的Fork仓库页面，点击 "New pull request" 按钮，向本项目的 `main` 分支发起一个拉取请求(PR)。请在PR的描述中，清晰地说明您做了什么以及为什么。
+
+感谢您的使用！如果您遇到任何问题，欢迎随时在 [Issues](https://github.com/Albert-Chen04/Video-Editing-Toolkit/issues) 页面提出。
 
 ## 📄 许可证 (License)
 
