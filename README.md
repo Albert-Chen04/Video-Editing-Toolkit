@@ -110,7 +110,7 @@
 
 #### 1.3 whisper模型下载
 语音转文本选择想用的模型，第一次转录就会先开始下载模型，在cmd可以查看模型下载和转录进度。  
-如果因为网络下载出现问题，可以通过下面链接下载，然后用里面的`whsiper`文件夹替换掉`\VideoEditingToolkit-v1.1.1-Windows-XXX\_internal\whisper`文件夹(包括UI界面的所有模型，按需下载）
+如果因为网络下载出现问题，可以通过下面链接下载，然后将下载的`models`文件夹复制到`\VideoEditingToolkit-v1.1.1-Windows-XXX\_internal`文件夹(包括UI界面的所有模型，按需下载）
 
 -   **文件名**: `models`
 -   **体积**: ~10G
