@@ -7,9 +7,9 @@ from PySide6.QtGui import QFont
 from PySide6.QtCore import QThread, Slot, Qt
 
 from core.workers.subtitle_worker import SubtitleBurnWorker, PreviewWorker
-from core.subtitle_converter import lrc_to_ass_chatbox_region
+# 【修改】从新的、独立的模块导入专用的转换函数
+from core.chatbox_converter import generate_chatbox_ass
 from ui.dialogs import PreviewDialog
-# 【新增】导入统一编码器配置模块
 from core.codec_config import get_encoder_options, get_copy_tooltip
 
 class SubtitleTab(QWidget):
@@ -54,8 +54,12 @@ class SubtitleTab(QWidget):
         self.sub_outline_spin = QSpinBox()
         self.sub_outline_spin.setRange(0, 20)
         
-        self.sub_line_spacing = QSpinBox()
+        # 【修改】分离两种行间距
+        self.sub_line_spacing = QSpinBox() # 这个现在是“弹幕间距”
         self.sub_line_spacing.setRange(0, 100)
+        self.sub_internal_line_spacing = QSpinBox() # 【新增】这个是“弹幕内行距”
+        self.sub_internal_line_spacing.setRange(0, 50)
+
         self.sub_letter_spacing = QSpinBox()
         self.sub_letter_spacing.setRange(-10, 100)
         self.sub_wrap_width = QSpinBox()
@@ -72,10 +76,8 @@ class SubtitleTab(QWidget):
 
         # --- 编码器和控制按钮 ---
         self.sub_codec_combo = QComboBox()
-        # 【修改】从统一配置模块动态加载编码器选项
         encoder_options = get_encoder_options()
         self.sub_codec_combo.addItems(encoder_options)
-        # 【修改】为 "直接复制" 选项添加 ToolTip
         copy_index = -1
         try:
             copy_index = encoder_options.index("直接复制 (无损/极速)")
@@ -128,15 +130,16 @@ class SubtitleTab(QWidget):
         params_layout.addWidget(QLabel("描边宽度:"), 1, 2)
         params_layout.addWidget(self.sub_outline_spin, 1, 3)
         
-        params_layout.addWidget(QLabel("行间距:"), 2, 0)
+        # 【修改】重命名标签，并添加新控件
+        params_layout.addWidget(QLabel("弹幕间距:"), 2, 0)
         params_layout.addWidget(self.sub_line_spacing, 2, 1)
-        params_layout.addWidget(QLabel("字间距:"), 2, 2)
-        params_layout.addWidget(self.sub_letter_spacing, 2, 3)
+        params_layout.addWidget(QLabel("弹幕内行距:"), 2, 2)
+        params_layout.addWidget(self.sub_internal_line_spacing, 2, 3)
 
-        params_layout.addWidget(QLabel("自动换行宽度 (字符):"), 3, 0)
-        params_layout.addWidget(self.sub_wrap_width, 3, 1)
-        params_layout.addWidget(QLabel("弹幕框高度比例:"), 3, 2)
-        params_layout.addWidget(self.sub_chatbox_height_ratio, 3, 3)
+        params_layout.addWidget(QLabel("字间距:"), 3, 0)
+        params_layout.addWidget(self.sub_letter_spacing, 3, 1)
+        params_layout.addWidget(QLabel("自动换行宽度 (字符):"), 3, 2)
+        params_layout.addWidget(self.sub_wrap_width, 3, 3)
         
         params_layout.addWidget(QLabel("左边距:"), 4, 0)
         params_layout.addWidget(self.sub_margin_left, 4, 1)
@@ -145,6 +148,8 @@ class SubtitleTab(QWidget):
         
         params_layout.addWidget(QLabel("最后弹幕持续(秒):"), 5, 0)
         params_layout.addWidget(self.sub_chatbox_duration, 5, 1)
+        params_layout.addWidget(QLabel("弹幕框高度比例:"), 5, 2)
+        params_layout.addWidget(self.sub_chatbox_height_ratio, 5, 3)
 
         codec_layout = QHBoxLayout()
         codec_layout.addWidget(QLabel("视频编码器:"))
@@ -169,6 +174,7 @@ class SubtitleTab(QWidget):
         main_layout.addLayout(button_layout)
         
     def create_connections(self):
+        # ... (此处代码不变) ...
         self.browse_video_sub_btn.clicked.connect(lambda: self.main_window.browse_file(self.video_file_path_sub, "选择视频文件", self.main_window.video_filter))
         self.browse_lrc_sub_btn.clicked.connect(lambda: self.main_window.browse_file(self.lrc_file_path_sub, "选择弹幕文件", "文本文件 (*.lrc *.txt);;所有文件 (*.*)"))
         self.output_dir_sub_browse_btn.clicked.connect(lambda: self.main_window.browse_output_dir(self.output_dir_sub))
@@ -183,17 +189,15 @@ class SubtitleTab(QWidget):
         self.sub_font_size.setValue(18)
         self.sub_primary_color_combo.setCurrentText("白色")
         self.sub_outline_spin.setValue(0)
-        self.sub_line_spacing.setValue(15)
+        self.sub_line_spacing.setValue(18)
+        self.sub_internal_line_spacing.setValue(8) # 【新增】设置默认内行距
         self.sub_letter_spacing.setValue(0)
         self.sub_wrap_width.setValue(18)
         self.sub_chatbox_height_ratio.setValue(0.20)
         self.sub_margin_left.setValue(40)
         self.sub_margin_bottom.setValue(198)
         self.sub_chatbox_duration.setValue(10)
-        
-        # 【修改】设置默认编码器选项
         self.sub_codec_combo.setCurrentText("N卡 H.264 (高质量)")
-
         self.log_output_sub.append("ℹ️ 已加载 [手机B站] 参数预设。")
 
     def load_weibo_preset(self):
@@ -202,16 +206,14 @@ class SubtitleTab(QWidget):
         self.sub_primary_color_combo.setCurrentText("白色")
         self.sub_outline_spin.setValue(0)
         self.sub_line_spacing.setValue(15)
+        self.sub_internal_line_spacing.setValue(6) # 【新增】设置默认内行距
         self.sub_letter_spacing.setValue(0)
         self.sub_wrap_width.setValue(15)
         self.sub_chatbox_height_ratio.setValue(0.22)
         self.sub_margin_left.setValue(50)
         self.sub_margin_bottom.setValue(190)
         self.sub_chatbox_duration.setValue(10)
-
-        # 【修改】设置默认编码器选项
         self.sub_codec_combo.setCurrentText("N卡 H.264 (高质量)")
-
         self.log_output_sub.append("ℹ️ 已加载 [手机微博] 参数预设。")
 
     def update_subtitle_output_dir(self):
@@ -229,10 +231,12 @@ class SubtitleTab(QWidget):
         if not (lrc_file and os.path.exists(lrc_file)):
             QMessageBox.warning(self, "错误", "请先选择有效的弹幕文件！"); return None
         
+        # 【修改】收集新的行间距参数
         ass_options = {
             'font_name': self.sub_font_name.currentFont().family(),
             'font_size': self.sub_font_size.value(),
             'line_spacing': self.sub_line_spacing.value(),
+            'internal_line_spacing': self.sub_internal_line_spacing.value(), # 【新增】
             'letter_spacing': self.sub_letter_spacing.value(),
             'chatbox_max_height_ratio': self.sub_chatbox_height_ratio.value(),
             'margin_left': self.sub_margin_left.value(),
@@ -243,7 +247,6 @@ class SubtitleTab(QWidget):
             'outline': self.sub_outline_spin.value()
         }
         
-        # 【修改】获取编码器名称而不是硬编码的值
         codec_name = self.sub_codec_combo.currentText()
         if "直接复制" in codec_name:
             QMessageBox.warning(self, "选项错误", "此功能需要重新编码视频以烧录弹幕，\n不能使用“直接复制”模式。请选择其他编码器。")
@@ -254,7 +257,7 @@ class SubtitleTab(QWidget):
             'lrc_file': lrc_file,
             'output_dir': output_dir,
             'base_path': self.main_window.base_path,
-            'codec_name': codec_name, # 传递编码器名称
+            'codec_name': codec_name,
             'output_format': self.sub_output_format_combo.currentText(),
             'ass_options': ass_options
         }
@@ -267,13 +270,13 @@ class SubtitleTab(QWidget):
         self.log_output_sub.clear()
         
         self.thread = QThread()
-        self.worker = PreviewWorker(self.main_window.ffmpeg_path, self.main_window.ffprobe_path, params, lrc_to_ass_chatbox_region)
+        # 【修改】传递新的转换函数
+        self.worker = PreviewWorker(self.main_window.ffmpeg_path, self.main_window.ffprobe_path, params, generate_chatbox_ass)
         self.worker.moveToThread(self.thread)
         self.worker.log_message.connect(self.log_output_sub.append)
         self.worker.finished.connect(self.on_preview_finished)
         self.worker.finished.connect(self.thread.quit)
-        self.thread.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self.worker.deleteLater); self.thread.finished.connect(self.thread.deleteLater)
         self.thread.started.connect(self.worker.run)
         self.thread.start()
 
@@ -288,17 +291,18 @@ class SubtitleTab(QWidget):
         self.progress_bar_sub.setValue(0)
 
         self.thread = QThread()
-        self.worker = SubtitleBurnWorker(self.main_window.ffmpeg_path, self.main_window.ffprobe_path, params, lrc_to_ass_chatbox_region)
+        # 【修改】传递新的转换函数
+        self.worker = SubtitleBurnWorker(self.main_window.ffmpeg_path, self.main_window.ffprobe_path, params, generate_chatbox_ass)
         self.worker.moveToThread(self.thread)
         self.worker.log_message.connect(self.log_output_sub.append)
         self.worker.progress.connect(self.progress_bar_sub.setValue)
         self.worker.finished.connect(self.on_subtitle_burn_finished)
         self.worker.finished.connect(self.thread.quit)
-        self.thread.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self.worker.deleteLater); self.thread.finished.connect(self.thread.deleteLater)
         self.thread.started.connect(self.worker.run)
         self.thread.start()
 
+    # ... (后续的 on_..._finished 和 set_controls_enabled 方法保持不变) ...
     @Slot(bool, str)
     def on_preview_finished(self, success, result_or_msg):
         self.set_controls_enabled(True)

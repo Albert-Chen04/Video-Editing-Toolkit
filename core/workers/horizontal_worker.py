@@ -5,8 +5,8 @@ import os
 from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration, get_video_dimensions
-from core.subtitle_converter import lrc_to_horizontal_ass
-# 【新增】导入统一编码器配置模块
+# 【修改】从新的、独立的模块导入专用的转换函数
+from core.horizontal_converter import generate_horizontal_ass
 from core.codec_config import get_codec_params
 
 class HorizontalBurnWorker(QObject):
@@ -24,7 +24,7 @@ class HorizontalBurnWorker(QObject):
 
     def run(self):
         video_file = self.params['video_file']
-        lrc_file = self.params['lrc_file'] # 实际上这里现在是通用字幕路径
+        lrc_file = self.params['lrc_file']
         output_dir = self.params['output_dir']
         temp_ass_path = None
         
@@ -39,7 +39,8 @@ class HorizontalBurnWorker(QObject):
             base_name, _ = os.path.splitext(os.path.basename(video_file))
             temp_ass_path = os.path.join(output_dir, f"{base_name}_horizontal_temp.ass").replace("\\", "/")
             
-            success, msg = lrc_to_horizontal_ass(
+            # 【修改】调用新的、专用的函数
+            success, msg = generate_horizontal_ass(
                 subtitle_path=lrc_file,
                 ass_path=temp_ass_path,
                 style_params=self.params['style_params'],
@@ -60,15 +61,11 @@ class HorizontalBurnWorker(QObject):
                 '-vf', vf_chain
             ]
             
-            # 【修改】动态获取并添加编码器参数
             codec_name = self.params.get('codec_name', 'CPU x264 (高兼容)')
             codec_params = get_codec_params(codec_name)
             command.extend(codec_params)
             
-            # 添加音频参数（强制重编码以保证同步）
             command.extend(['-c:a', 'aac', '-b:a', '192k'])
-            
-            # 添加输出文件和覆盖参数
             command.extend(['-y', output_file])
             
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -132,7 +129,8 @@ class HorizontalPreviewWorker(QObject):
             base_name, _ = os.path.splitext(os.path.basename(video_file))
             temp_ass_path = os.path.join(self.params['base_path'], f"{base_name}_horizontal_preview.ass").replace("\\", "/")
             
-            success, msg = lrc_to_horizontal_ass(
+            # 【修改】调用新的、专用的函数
+            success, msg = generate_horizontal_ass(
                 subtitle_path=lrc_file,
                 ass_path=temp_ass_path,
                 style_params=self.params['style_params'],

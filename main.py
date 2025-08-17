@@ -17,40 +17,46 @@ from ui.main_window import MainWindow
 
 def get_app_paths():
     """
-    【最终稳定版】智能判断路径，完美兼容开发、--onedir、--onefile三种模式。
+    【最终稳定版】智能判断路径，完美兼容开发和打包模式，
+    并确保能识别用户自己配置的全局FFmpeg。
     """
     paths = {}
     is_packaged = getattr(sys, 'frozen', False)
     
-    # --- 确定查找 'dependencies' 和 'assets' 等数据文件夹的根目录 (lookup_dir) ---
-    
+    # --- 确定 base_path ---
+    # base_path 是我们查找 assets 等内部资源的基准
     if is_packaged:
-        # 如果是打包后的程序
         if hasattr(sys, '_MEIPASS'):
-            # --onefile 模式: 数据文件被解压到 _MEIPASS 临时文件夹
-            lookup_dir = sys._MEIPASS
+            # --onefile 模式, 资源在 _MEIPASS 临时文件夹
+            base_path = sys._MEIPASS
         else:
-            # --onedir 模式: 数据文件和 exe 在同一级目录
-            lookup_dir = os.path.dirname(sys.executable)
+            # --onedir 模式, 资源和 exe 在同一级目录
+            base_path = os.path.dirname(sys.executable)
     else:
-        # 开发模式: 数据文件在项目根目录
-        lookup_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # base_path 用于加载资源，它应该和数据文件夹的查找路径一致
-    paths['base'] = lookup_dir
+        # 开发模式, 资源在项目根目录
+        base_path = os.path.dirname(os.path.abspath(__file__))
     
-    # --- FFmpeg 路径查找 ---
+    paths['base'] = base_path
+    
+    # --- FFmpeg 路径查找 (保留您的核心功能) ---
+    
     # 1. 定义项目内部的期望路径
-    dependencies_dir = os.path.join(lookup_dir, 'dependencies')
-    project_ffmpeg_path = os.path.join(dependencies_dir, 'ffmpeg.exe')
-    project_ffprobe_path = os.path.join(dependencies_dir, 'ffprobe.exe')
+    #    这个路径是相对于 base_path 的，对于所有模式都有效
+    project_ffmpeg_path = os.path.join(base_path, 'dependencies', 'ffmpeg.exe')
+    project_ffprobe_path = os.path.join(base_path, 'dependencies', 'ffprobe.exe')
     
     # 2. 使用 find_executable 进行智能查找
-    # 它会先检查项目内部路径，如果找不到，再检查系统PATH
+    #    它会先检查我们定义的 project_..._path，如果找不到，再检查系统PATH
     paths['ffmpeg'] = find_executable('ffmpeg.exe', project_ffmpeg_path)
     paths['ffprobe'] = find_executable('ffprobe.exe', project_ffprobe_path)
     
-    return paths, is_packaged, dependencies_dir
+    # --- 为第三方库设置 PATH ---
+    # 这一步是为了让 whisper 等库也能找到 ffmpeg
+    if paths['ffmpeg']:
+        ffmpeg_dir = os.path.dirname(paths['ffmpeg'])
+        os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
+    
+    return paths, is_packaged
 
 if __name__ == '__main__':
     # 设置高DPI支持
@@ -58,12 +64,7 @@ if __name__ == '__main__':
     
     app = QApplication(sys.argv)
     
-    app_paths, is_packaged, dependencies_dir = get_app_paths()
-
-    # --- 【最终修复】将 'dependencies' 目录添加到 PATH 环境变量 ---
-    # 这确保了像 whisper 这样的第三方库也能找到 ffmpeg
-    if os.path.exists(dependencies_dir):
-        os.environ['PATH'] = dependencies_dir + os.pathsep + os.environ.get('PATH', '')
+    app_paths, is_packaged = get_app_paths()
 
     # --- 启动前检查FFmpeg是否找到 ---
     if not app_paths['ffmpeg'] or not app_paths['ffprobe']:

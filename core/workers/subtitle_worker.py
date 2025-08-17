@@ -5,12 +5,12 @@ import os
 from PySide6.QtCore import QObject, Signal
 
 from core.utils import get_video_duration, get_video_dimensions
-# 【新增】导入统一编码器配置模块
 from core.codec_config import get_codec_params
 
 class SubtitleBurnWorker(QObject):
     """
-    在后台执行LRC到ASS的转换，并使用FFmpeg将字幕烧录到视频中。
+    【已重构】在后台执行ASS的转换，并使用FFmpeg将字幕烧录到视频中。
+    这是一个通用的Worker，具体转换逻辑由传入的 ass_converter 决定。
     """
     finished = Signal(int, str)
     progress = Signal(int)
@@ -21,12 +21,14 @@ class SubtitleBurnWorker(QObject):
         self.ffmpeg_path = ffmpeg_path
         self.ffprobe_path = ffprobe_path
         self.params = params
-        self.lrc_to_ass_converter = ass_converter
+        # 【修改】变量名 lrc_to_ass_converter 改为 ass_converter
+        self.ass_converter = ass_converter
         self._is_running = True
 
     def run(self):
         video_file = self.params['video_file']
-        lrc_file = self.params['lrc_file']
+        # 【修改】变量名 lrc_file 改为 subtitle_file 以保持通用性
+        subtitle_file = self.params['lrc_file']
         output_dir = self.params['output_dir']
         temp_ass_path = None
         
@@ -38,12 +40,13 @@ class SubtitleBurnWorker(QObject):
                 return
             self.log_message.emit(f"✅ 视频尺寸: {width}x{height}")
 
-            self.log_message.emit("正在转换LRC为ASS字幕文件...")
+            self.log_message.emit("正在转换字幕文件为ASS格式...")
             base_name, _ = os.path.splitext(os.path.basename(video_file))
             temp_ass_path = os.path.join(os.path.dirname(video_file), f"{base_name}_temp.ass").replace("\\", "/")
             
             # 动态调用传入的转换函数
-            success, msg = self.lrc_to_ass_converter(lrc_file=lrc_file, ass_file=temp_ass_path, video_width=width, video_height=height, **self.params['ass_options'])
+            # 【修改】参数名 lrc_file 改为 subtitle_file (对于chatbox来说就是lrc_file)
+            success, msg = self.ass_converter(lrc_file=subtitle_file, ass_file=temp_ass_path, video_width=width, video_height=height, **self.params['ass_options'])
             if not success:
                 self.finished.emit(-1, f"生成ASS字幕失败: {msg}")
                 return
@@ -58,15 +61,11 @@ class SubtitleBurnWorker(QObject):
                 '-vf', f"ass=filename='{escaped_ass_path}'"
             ]
 
-            # 【修改】动态获取并添加编码器参数
             codec_name = self.params.get('codec_name', 'CPU x264 (高兼容)')
             codec_params = get_codec_params(codec_name)
             command.extend(codec_params)
             
-            # 添加音频参数（强制重编码以保证同步）
             command.extend(['-c:a', 'aac', '-b:a', '192k'])
-
-            # 添加输出文件和覆盖参数
             command.extend(['-y', output_file])
             
             process = subprocess.Popen([self.ffmpeg_path] + command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1, encoding='utf-8', errors='replace', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -116,14 +115,16 @@ class PreviewWorker(QObject):
         self.ffmpeg_path = ffmpeg_path
         self.ffprobe_path = ffprobe_path
         self.params = params
-        self.lrc_to_ass_converter = ass_converter
+        # 【修改】变量名 lrc_to_ass_converter 改为 ass_converter
+        self.ass_converter = ass_converter
 
     def run(self):
         temp_ass_path = None
         temp_img_path = None
         try:
             video_file = self.params['video_file']
-            lrc_file = self.params['lrc_file']
+            # 【修改】变量名 lrc_file 改为 subtitle_file
+            subtitle_file = self.params['lrc_file']
             
             self.log_message.emit("正在获取视频信息...")
             width, height, msg = get_video_dimensions(video_file, self.ffprobe_path)
@@ -136,7 +137,8 @@ class PreviewWorker(QObject):
             base_name, _ = os.path.splitext(os.path.basename(video_file))
             temp_ass_path = os.path.join(self.params['base_path'], f"{base_name}_preview.ass").replace("\\", "/")
             
-            success, msg = self.lrc_to_ass_converter(lrc_file=lrc_file, ass_file=temp_ass_path, video_width=width, video_height=height, **self.params['ass_options'])
+            # 【修改】参数名 lrc_file 改为 subtitle_file
+            success, msg = self.ass_converter(lrc_file=subtitle_file, ass_file=temp_ass_path, video_width=width, video_height=height, **self.params['ass_options'])
             if not success:
                 self.finished.emit(False, f"生成ASS字幕失败: {msg}")
                 return
@@ -163,7 +165,6 @@ class PreviewWorker(QObject):
         except Exception as e:
             self.finished.emit(False, f"生成预览时发生未知错误: {e}")
         finally:
-            # 【修复】增加文件存在性检查，避免程序因文件不存在而崩溃
             if temp_ass_path and os.path.exists(temp_ass_path):
                 try:
                     os.remove(temp_ass_path)

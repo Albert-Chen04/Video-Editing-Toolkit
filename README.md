@@ -78,11 +78,11 @@
 
 也支持网盘下载：
 
--   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-GPU.zip`
--   **体积**: ~2.74 GB
+-   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-GPU.7z`
+-   **体积**: ~1.58 GB
 -   **下载链接**:
-    -   **夸克云盘**: https://pan.quark.cn/s/ed8700ffe8be
-    -   **百度网盘**: https://pan.baidu.com/s/1StyNYv9YXhgFojvOEgVwSQ **提取码**: `8888`
+    -   **夸克云盘**: https://pan.quark.cn/s/06014574d44a
+    -   **百度网盘**: https://pan.baidu.com/s/1uMt7A-ZuskMoOLZFJJkSPg **提取码**: `8888`
 
 ---
 
@@ -103,14 +103,14 @@
 -   **文件名**: `VideoEditingToolkit-v1.1.1-Windows-CPU.zip`
 -   **体积**: ~349 MB
 -   **下载链接**:
-    -   **夸克云盘**: https://pan.quark.cn/s/81b449fb0d82
-    -   **百度网盘**: https://pan.baidu.com/s/1dOlo8FHLptRK7rRzKACVBw  **提取码**: `8888`
+    -   **夸克云盘**: https://pan.quark.cn/s/55dff8fd6b8b
+    -   **百度网盘**: https://pan.baidu.com/s/1pcyLbWm41rjg6Fsf6allPQ  **提取码**: `8888`
 
 ---
 
 #### 1.3 whisper模型下载
 语音转文本选择想用的模型，第一次转录就会先开始下载模型，在cmd可以查看模型下载和转录进度。  
-如果因为网络下载出现问题，可以通过下面链接下载，然后替换掉models文件夹(包括uij界面的所有模型，按需下载）
+如果因为网络下载出现问题，可以通过下面链接下载，然后用里面的`whsiper`文件夹替换掉`\VideoEditingToolkit-v1.1.1-Windows-XXX\_internal\whisper`文件夹(包括UI界面的所有模型，按需下载）
 
 -   **文件名**: `models`
 -   **体积**: ~10G
